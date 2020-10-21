@@ -125,29 +125,39 @@ StartFrame:
     sta PF1
     sta PF2
 	
-    REPEAT 10    ; draw 10 lines (BORDER_HEIGHT) of border
-        sta WSYNC
-    REPEND
+    ldx #10
+.BorderTopLoop:
+    sta WSYNC
 
-    ldx #76       	     ; number of remaining scan lines
+    dex
+    bne .BorderTopLoop
+
+    ldx #76
+.GameLineLoop:
 
     lda #$0
     sta PF0
     sta PF1
     sta PF2
+   
+ 
+    sta WSYNC
 
-    REPEAT 172    	    ; draw remaining playing field empty
-        sta WSYNC
-    REPEND
+    dex
+    bne .GameLineLoop
+	
 
     lda #$FF
     sta PF0
     sta PF1
     sta PF2
-	
-    REPEAT 10    ; draw 10 lines (BORDER_HEIGHT) of border
-        sta WSYNC
-    REPEND
+    
+    ldx #10
+.BorderBottomLoop:
+    sta WSYNC
+
+    dex
+    bne .BorderBottomLoop
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display Overscan
