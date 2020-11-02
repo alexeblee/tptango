@@ -120,32 +120,56 @@ StartFrame:
     ldx #%00000001 ; CTRLPF register (D0 is the reflect flag) 
     stx CTRLPF
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display the 10 lines of border edge
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
     lda #$FF
     sta PF0
     sta PF1
-    sta PF2
+    sta PF2                  ; draw the top edge border of the playing field
 	
     ldx #10
 .BorderTopLoop:
     sta WSYNC
 
     dex
-    bne .BorderTopLoop
+    bne .BorderTopLoop       ; border is 10 lines long
 
-    ldx #76
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display the remaining 76 playing field lines
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ldx #76                  ; remaining 76 lines (96-border top (10)-border bottom(10))
 .GameLineLoop:
 
     lda #$0
     sta PF0
     sta PF1
-    sta PF2
+    sta PF2                  ; clear border. Now we just render the main background color
    
- 
+.CheckInsidePlayer
+    txa 		     ; x has the current line x coordinate. Transfer to A register
+    sec                      ; make sure carry flag is set before subtraction
+    sbc PlayerYPos           ; subtract sprite Y-coordinate 
+    cmp #PLAYER_HEIGHT       ; are we inside the sprite height bounds?
+    bcc .DrawSpriteP0        ; if result < SpriteHeight, call the draw routine
+    lda #0                   ; else, set lookup index to zero
+.DrawSpriteP0:
+    clc                      ; clear carry flag before addition
+    tay                      ; load Y so we can work with the pointer
+    lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
+    sta WSYNC                ; wait for scanline
+    sta GRP0                 ; set graphics for player0
+    lda (PlayerRightColorPtr),Y      ; load player color from lookup table
+    sta COLUP0               ; set color of player 0    
     sta WSYNC
 
     dex
     bne .GameLineLoop
 	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display the 10 lines of border edge
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     lda #$FF
     sta PF0
