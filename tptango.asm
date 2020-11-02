@@ -19,6 +19,8 @@ TPYPos			byte
 ShoppingCartXPos	byte
 ShoppingCartYPos	byte
 
+renderOffset            byte
+
 PlayerLeftSpritePtr	word	     ; Pointer to PlayerLeftSprite lookup table 
 PlayerLeftColorPtr	word	     ; Pointer to PlayerLeftColor lookup table 
 PlayerRightSpritePtr	word	     ; Pointer to PlayerRightSprite lookup table 
@@ -52,16 +54,16 @@ Reset:
     lda #50
     sta PlayerYPos           	     ; start the player somewhere in the middle of the screen
 
-    lda #100
+    lda #120
     sta TPXPos
-    lda #50
+    lda #65
     sta TPYPos
 
     lda #50
     sta ShoppingCartXPos
     lda #10
     sta ShoppingCartYPos
-
+    
     lda #$AE
     sta COLUBK               ; set background color to blue
     
@@ -92,6 +94,26 @@ Reset:
     lda #>PlayerRightColor
     sta PlayerRightColorPtr+1
 
+    lda #<ShoppingCartSprite
+    sta ShoppingCartSpritePtr          ; low byte ptr for shopping cart sprite lookup table
+    lda #>ShoppingCartSprite
+    sta ShoppingCartSpritePtr+1	     ; high byte ptr for shopping cart sprite lookup table
+    
+    lda #<ShoppingCartColor
+    sta ShoppingCartColorPtr
+    lda #>ShoppingCartColor
+    sta ShoppingCartColorPtr+1
+    
+    lda #<TPSprite
+    sta TPSpritePtr          ; low byte ptr for TP sprite lookup table
+    lda #>TPSprite
+    sta TPSpritePtr+1	     ; high byte ptr for TP sprite lookup table
+    
+    lda #<TPColor
+    sta TPColorPtr
+    lda #>TPColor
+    sta TPColorPtr+1
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start the main display loop and frame rendering
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -109,11 +131,26 @@ StartFrame:
     lda #0
     sta VSYNC                ; turn off VSYNC
 
-    REPEAT 37
-        sta WSYNC            ; display the 37 recommended lines of VBLANK
+    REPEAT 33
+        sta WSYNC            ; display the (37-calculations)  recommended lines of VBLANK
     REPEND
-    sta VBLANK               ; turn off VBLANK
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Calculations and tasks performed during the VBLANK section
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    lda PlayerXPos
+    ldy #0
+    jsr SetObjectXPos        ; set player horizontal position
+
+    lda TPXPos
+    ldy #1
+    jsr SetObjectXPos        ; set TP horizontal position
+
+    sta WSYNC
+    sta HMOVE                ; apply the horizontal offsets previously set
+
+    lda #0
+    sta VBLANK               ; turn off VBLANK
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 96 visible scanlines of our main game because of 2-line kernel
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -156,17 +193,34 @@ StartFrame:
     lda #0                   ; else, set lookup index to zero
 .DrawSpriteP0:
     clc                      ; clear carry flag before addition
+    adc renderOffset         ; jump to correct sprite frame address in memory
     tay                      ; load Y so we can work with the pointer
     lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
     sta WSYNC                ; wait for scanline
     sta GRP0                 ; set graphics for player0
     lda (PlayerRightColorPtr),Y      ; load player color from lookup table
     sta COLUP0               ; set color of player 0    
-    sta WSYNC
 
+.CheckInsideTP
+    txa 		     ; x has the current line x coordinate. Transfer to A register
+    sec                      ; make sure carry flag is set before subtraction
+    sbc TPYPos               ; subtract sprite Y-coordinate 
+    cmp #TP_HEIGHT           ; are we inside the TP sprite height bounds?
+    bcc .DrawTP              ; if result < TPHeight, call the draw routine
+    lda #0                   ; else, set lookup index to zero
+.DrawTP:
+    tay                      ; load Y so we can work with the pointer
+    lda (TPSpritePtr),Y      ; load TP bitmap data from lookup table
+    sta WSYNC                ; wait for scanline
+    sta GRP1                 ; set graphics for TP
+    lda (TPColorPtr),Y       ; load TP color from lookup table
+    sta COLUP1               ; set color of TP
+    
     dex
     bne .GameLineLoop
-	
+
+    lda #0
+    sta renderOffset        ; reset animation frame to zero each frame	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 10 lines of border edge
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -196,6 +250,27 @@ StartFrame:
 ;; Loop back to start a brand new frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     jmp StartFrame           ; continue to display the next frame
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subroutine to handle object horizontal position with fine offset
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; A is the target x-coordinate position in pixels of our object
+;; Y is the object type (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SetObjectXPos subroutine
+    sta WSYNC                ; start a fresh new scanline
+    sec                      ; make sure carry-flag is set before subtracion
+.Div15Loop
+    sbc #15                  ; subtract 15 from accumulator
+    bcs .Div15Loop           ; loop until carry-flag is clear
+    eor #7                   ; handle offset range from -8 to 7
+    asl
+    asl
+    asl
+    asl                      ; four shift lefts to get only the top 4 bits
+    sta HMP0,Y               ; store the fine offset to the correct HMxx
+    sta RESP0,Y              ; fix object position in 15-step increment
+    rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Declare Sprite Lookups
@@ -266,6 +341,39 @@ PlayerLeftWalkSprite:
         .byte #%00111000;$F2
         .byte #%00000000;--
 
+TPSprite:
+        .byte #%00000000;$0E
+        .byte #%00000000;$0E
+        .byte #%00000000;$0E
+        .byte #%00011000;$0E
+        .byte #%00011000;$0E
+        .byte #%00011000;$0E
+        .byte #%00000000;$0E
+        .byte #%00000000;$0E
+        .byte #%00000000;--
+
+ShoppingCartSprite:
+        .byte #%00000000;$0E
+        .byte #%00000000;$04
+        .byte #%00011000;$04
+        .byte #%00100100;$04
+        .byte #%00100100;$04
+        .byte #%00100100;$04
+        .byte #%00100100;$04
+        .byte #%00111100;$42
+        .byte #%00000000;--
+
+TPColor:
+        .byte #$00;
+        .byte #$0E;
+        .byte #$0E;
+        .byte #$0E;
+        .byte #$0E;
+        .byte #$0E;
+        .byte #$0E;
+        .byte #$0E;
+        .byte #$0E;
+
 PlayerLeftColor:
         .byte #$00;
 	.byte #$FE;
@@ -287,39 +395,6 @@ PlayerLeftTurnColor
         .byte #$FE;
         .byte #$F2;
         .byte #$0E;
-
-TPSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$0E
-        .byte #%00000000;$0E
-        .byte #%00011000;$0E
-        .byte #%00011000;$0E
-        .byte #%00011000;$0E
-        .byte #%00000000;$0E
-        .byte #%00000000;$0E
-        .byte #%00000000;--
-
-TPColor:
-        .byte #$00;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-
-ShoppingCartSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$04
-        .byte #%00011000;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00111100;$42
-        .byte #%00000000;--
 
 ShoppingCartColor:
         .byte #$00;
