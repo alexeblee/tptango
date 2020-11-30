@@ -34,6 +34,9 @@ ShoppingCartColorPtr	word
 ;; Define Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PLAYER_HEIGHT = 9
+PLAYER_RIGHT_OFFSET = 9
+PLAYER_LEFT_OFFSET = 18
+PLAYER_UP_DOWN_OFFSET = 36
 TP_HEIGHT = 9
 SHOPPING_CART_HEIGHT = 9
 
@@ -191,6 +194,7 @@ StartFrame:
     cmp #PLAYER_HEIGHT       ; are we inside the sprite height bounds?
     bcc .DrawSpriteP0        ; if result < SpriteHeight, call the draw routine
     lda #0                   ; else, set lookup index to zero
+
 .DrawSpriteP0:
     clc                      ; clear carry flag before addition
     adc renderOffset         ; jump to correct sprite frame address in memory
@@ -208,6 +212,7 @@ StartFrame:
     cmp #TP_HEIGHT           ; are we inside the TP sprite height bounds?
     bcc .DrawTP              ; if result < TPHeight, call the draw routine
     lda #0                   ; else, set lookup index to zero
+
 .DrawTP:
     tay                      ; load Y so we can work with the pointer
     lda (TPSpritePtr),Y      ; load TP bitmap data from lookup table
@@ -221,6 +226,67 @@ StartFrame:
 
     lda #0
     sta renderOffset        ; reset animation frame to zero each frame	
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Process joystick input for player0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+CheckP0Up:
+    lda #%00010000           ; player0 joystick up
+    bit SWCHA
+    bne CheckP0Down          ; if bit pattern doesnt match, bypass Up block
+    inc PlayerYPos
+    lda PLAYER_UP_DOWN_OFFSET; 27
+    sta renderOffset         ; 
+
+CheckP0Down:
+    lda #%00100000           ; player0 joystick down
+    bit SWCHA
+    bne CheckP0Left          ; if bit pattern doesnt match, bypass Down block
+    dec PlayerYPos
+    lda PLAYER_UP_DOWN_OFFSET; 27
+    sta renderOffset         ;
+
+CheckP0Left:
+    lda #%01000000           ; player0 joystick left
+    bit SWCHA
+    bne CheckP0Right         ; if bit pattern doesnt match, bypass Left block
+    dec PlayerXPos
+    lda PLAYER_LEFT_OFFSET   ; 18
+    sta renderOffset         ; set animation offset to the second frame
+
+CheckP0Right:
+    lda #%10000000           ; player0 joystick right
+    bit SWCHA
+    bne EndInputCheck        ; if bit pattern doesnt match, bypass Right block
+    inc PlayerXPos
+    lda PLAYER_RIGHT_OFFSET  ; 9
+    sta renderOffset         ; 
+
+EndInputCheck:               ; fallback when no input was performed
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Calculations to update position for next frame
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+UpdatePlayerPosition:
+    lda PlayerYPos
+    clc
+    cmp #1                     ; compare player y-position with 0 (top of border)
+    bmi .ResetPlayerLowPosition ; if it is < 0, then reset y-position to 0
+    lda PlayerYPos
+    clc
+    cmp #69
+    bcs .ResetPlayerHighPosition ; if it is at the top of the screen, reset
+    jmp EndPositionUpdate
+.ResetPlayerHighPosition
+    lda #69
+    sta PlayerYPos
+    jmp EndPositionUpdate
+.ResetPlayerLowPosition
+    lda #1
+    sta PlayerYPos
+
+EndPositionUpdate:           ; fallback for the position update code
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 10 lines of border edge
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -278,7 +344,7 @@ SetObjectXPos subroutine
 PlayerRightSprite:
         .byte #%00000000;$0E
         .byte #%00000000;$FE
-        .byte #%00101000;$FE
+        .byte #%00110000;$FE
         .byte #%00110000;$48
         .byte #%00110000;$48
         .byte #%00111000;$FE
@@ -289,35 +355,13 @@ PlayerRightSprite:
 PlayerRightWalkSprite:
         .byte #%00000000;$0E
         .byte #%00000000;$FE
-        .byte #%00110000;$FE
+        .byte #%00101000;$FE
         .byte #%00110000;$48
         .byte #%00110000;$48
         .byte #%00111000;$FE
         .byte #%00111000;$FE
         .byte #%00111000;$F2
         .byte #%00000000;--
-
-PlayerRightColor:
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
-
-PlayerRightWalkColor:
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
 
 PlayerLeftSprite:
         .byte #%00000000;$0E
@@ -341,6 +385,70 @@ PlayerLeftWalkSprite:
         .byte #%00111000;$F2
         .byte #%00000000;--
 
+PlayerUpDownWalkSprite:
+        .byte #%00000000;$FE
+        .byte #%00101000;$FE
+        .byte #%00111000;$48
+        .byte #%00111000;$48
+        .byte #%00111000;$FE
+        .byte #%00111000;$FE
+        .byte #%00111000;$F2
+        .byte #%00000000;$0E
+
+PlayerRightColor:
+        .byte #$00;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$48;
+        .byte #$48;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$F2;
+        .byte #$0E;
+
+PlayerRightWalkColor:
+        .byte #$00;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$48;
+        .byte #$48;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$F2;
+        .byte #$0E;
+
+PlayerLeftColor:
+        .byte #$00;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$48;
+        .byte #$48;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$F2;
+        .byte #$0E;
+
+PlayerLeftWalkColor
+        .byte #$00;
+	.byte #$FE;
+        .byte #$FE;
+        .byte #$48;
+        .byte #$48;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$F2;
+        .byte #$0E;
+
+PlayerUpDownWalkColor:
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$48;
+        .byte #$48;
+        .byte #$FE;
+        .byte #$FE;
+        .byte #$F2;
+        .byte #$0E;
+
 TPSprite:
         .byte #%00000000;$0E
         .byte #%00000000;$0E
@@ -350,17 +458,6 @@ TPSprite:
         .byte #%00011000;$0E
         .byte #%00000000;$0E
         .byte #%00000000;$0E
-        .byte #%00000000;--
-
-ShoppingCartSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$04
-        .byte #%00011000;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00111100;$42
         .byte #%00000000;--
 
 TPColor:
@@ -374,27 +471,16 @@ TPColor:
         .byte #$0E;
         .byte #$0E;
 
-PlayerLeftColor:
-        .byte #$00;
-	.byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
-
-PlayerLeftTurnColor
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
+ShoppingCartSprite:
+        .byte #%00000000;$0E
+        .byte #%00000000;$04
+        .byte #%00011000;$04
+        .byte #%00100100;$04
+        .byte #%00100100;$04
+        .byte #%00100100;$04
+        .byte #%00100100;$04
+        .byte #%00111100;$42
+        .byte #%00000000;--
 
 ShoppingCartColor:
         .byte #$00;
