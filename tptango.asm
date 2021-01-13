@@ -228,6 +228,31 @@ StartFrame:
     sta renderOffset        ; reset animation frame to zero each frame	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display the 10 lines of border edge
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    lda #$FF
+    sta PF0
+    sta PF1
+    sta PF2
+    
+    ldx #10
+.BorderBottomLoop:
+    sta WSYNC
+
+    dex
+    bne .BorderBottomLoop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display Overscan
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    lda #2
+    sta VBLANK               ; turn on VBLANK again
+    REPEAT 30
+        sta WSYNC            ; display 30 recommended lines of VBlank Overscan
+    REPEND
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CheckP0Up:
@@ -288,29 +313,26 @@ UpdatePlayerPosition:
 EndPositionUpdate:           ; fallback for the position update code
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display the 10 lines of border edge
+;; Check for object collision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+CheckCollisionP0P1:
+    lda #%10000000           ; CXPPMM bit 7 detects P0 and P1 collision
+    bit CXPPMM               ; check CXPPMM bit 7 with the above pattern
+    bne .CollisionP0P1       ; if collision between P0 and P1 happened, branch
+    jmp CheckCollisionP0PF   ; else, skip to next check
+.CollisionP0P1:
+    jsr GameOver             ; call GameOver subroutine
 
-    lda #$FF
-    sta PF0
-    sta PF1
-    sta PF2
-    
-    ldx #10
-.BorderBottomLoop:
-    sta WSYNC
+CheckCollisionP0PF:
+    lda #%10000000           ; CXP0FB bit 7 detects P0 and PF collision
+    bit CXP0FB               ; check CXP0FB bit 7 with the above pattern
+    bne .CollisionP0PF       ; if collision P0 and PF happened, branch
+    jmp EndCollisionCheck    ; else, skip to next check
+.CollisionP0PF:
+    jsr GameOver             ; call GameOver subroutine
 
-    dex
-    bne .BorderBottomLoop
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display Overscan
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda #2
-    sta VBLANK               ; turn on VBLANK again
-    REPEAT 30
-        sta WSYNC            ; display 30 recommended lines of VBlank Overscan
-    REPEND
+EndCollisionCheck:           ; fallback
+    sta CXCLR                ; clear all collision flags before the next frame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
@@ -336,6 +358,14 @@ SetObjectXPos subroutine
     asl                      ; four shift lefts to get only the top 4 bits
     sta HMP0,Y               ; store the fine offset to the correct HMxx
     sta RESP0,Y              ; fix object position in 15-step increment
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Game Over subroutine
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+GameOver subroutine
+    lda #$30
+    sta COLUBK
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
