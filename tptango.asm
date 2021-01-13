@@ -416,6 +416,7 @@ PlayerLeftWalkSprite:
         .byte #%00000000;--
 
 PlayerUpDownWalkSprite:
+        .byte #%00000000;$0E
         .byte #%00000000;$FE
         .byte #%00101000;$FE
         .byte #%00111000;$48
@@ -470,6 +471,7 @@ PlayerLeftWalkColor
         .byte #$0E;
 
 PlayerUpDownWalkColor:
+        .byte #$00;
         .byte #$FE;
         .byte #$FE;
         .byte #$48;
