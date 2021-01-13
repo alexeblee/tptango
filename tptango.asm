@@ -292,25 +292,45 @@ EndInputCheck:               ; fallback when no input was performed
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations to update position for next frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-UpdatePlayerPosition:
+UpdatePlayerYPosition:
     lda PlayerYPos
     clc
-    cmp #1                     ; compare player y-position with 0 (top of border)
-    bmi .ResetPlayerLowPosition ; if it is < 0, then reset y-position to 0
+    cmp #0                       ; compare player y-position with 0 (top of border)
+    bmi .ResetPlayerLowPosition  ; if it is < 0, then reset y-position to 0
     lda PlayerYPos
     clc
     cmp #69
     bcs .ResetPlayerHighPosition ; if it is at the top of the screen, reset
-    jmp EndPositionUpdate
+    jmp EndPositionYUpdate
+.ResetPlayerLowPosition
+    lda #0
+    sta PlayerYPos
+    jmp EndPositionYUpdate
 .ResetPlayerHighPosition
     lda #69
     sta PlayerYPos
-    jmp EndPositionUpdate
-.ResetPlayerLowPosition
-    lda #1
-    sta PlayerYPos
 
-EndPositionUpdate:           ; fallback for the position update code
+EndPositionYUpdate:           ; fallback for the position update code
+    
+UpdatePlayerXPosition:
+    lda PlayerXPos
+    clc
+    cmp #0
+    bmi .ResetPlayerLeftPosition ; if it is on the left side of the screen, reset
+    lda PlayerXPos
+    clc
+    cmp #120
+    bcs .ResetPlayerRightPosition ; if it is on the right side of the screen, reset
+    jmp EndPositionXUpdate
+.ResetPlayerLeftPosition
+    lda #0
+    sta PlayerXPos
+    jmp EndPositionXUpdate
+.ResetPlayerRightPosition
+    lda #120
+    sta PlayerXPos
+
+EndPositionXUpdate:          ; fallback for the position X update code
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check for object collision
