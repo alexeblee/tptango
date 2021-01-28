@@ -19,6 +19,8 @@ TPYPos			byte
 ShoppingCartXPos	byte
 ShoppingCartYPos	byte
 
+Random                  byte         ; Random X starting position of shopping cart 1
+
 renderOffset            byte
 
 PlayerLeftSpritePtr	word	     ; Pointer to PlayerLeftSprite lookup table 
@@ -37,8 +39,8 @@ PLAYER_HEIGHT = 9
 PLAYER_RIGHT_OFFSET = 9
 PLAYER_LEFT_OFFSET = 18
 PLAYER_UP_DOWN_OFFSET = 36
-TP_HEIGHT = 9
-SHOPPING_CART_HEIGHT = 9
+TP_HEIGHT = 3
+CART_HEIGHT = 9
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start our ROM code at memory address $F000
@@ -47,15 +49,15 @@ SHOPPING_CART_HEIGHT = 9
     org $F000
 
 Reset:
-    CLEAN_START              ; call macro to reset memory and registers
+    CLEAN_START                      ; call macro to reset memory and registers
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize Variables in RAM and TIA Registers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     lda #0
-    sta PlayerXPos           	     ; start the player on the lefthand side of the screen
+    sta PlayerXPos                   ; start the player on the lefthand side of the screen
     lda #50
-    sta PlayerYPos           	     ; start the player somewhere in the middle of the screen
+    sta PlayerYPos                   ; start the player somewhere in the middle of the screen
 
     lda #120
     sta TPXPos
@@ -66,12 +68,14 @@ Reset:
     sta ShoppingCartXPos
     lda #10
     sta ShoppingCartYPos
-    
+    lda #%11010100
+    sta Random                       ; Random = $D4
+ 
     lda #$AE
-    sta COLUBK               ; set background color to blue
+    sta COLUBK                       ; set background color to blue
     
     lda #$0F
-    sta COLUPF               ; set the playfield color with white
+    sta COLUPF                       ; set the playfield color with white
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize Lookup Tables
@@ -88,7 +92,7 @@ Reset:
     sta PlayerLeftColorPtr+1
 
     lda #<PlayerRightSprite
-    sta PlayerRightSpritePtr          ; low byte ptr for player left sprite lookup table
+    sta PlayerRightSpritePtr         ; low byte ptr for player left sprite lookup table
     lda #>PlayerRightSprite
     sta PlayerRightSpritePtr+1	     ; high byte ptr for player left sprite lookup table
     
@@ -98,7 +102,7 @@ Reset:
     sta PlayerRightColorPtr+1
 
     lda #<ShoppingCartSprite
-    sta ShoppingCartSpritePtr          ; low byte ptr for shopping cart sprite lookup table
+    sta ShoppingCartSpritePtr        ; low byte ptr for shopping cart sprite lookup table
     lda #>ShoppingCartSprite
     sta ShoppingCartSpritePtr+1	     ; high byte ptr for shopping cart sprite lookup table
     
@@ -108,9 +112,9 @@ Reset:
     sta ShoppingCartColorPtr+1
     
     lda #<TPSprite
-    sta TPSpritePtr          ; low byte ptr for TP sprite lookup table
+    sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
     lda #>TPSprite
-    sta TPSpritePtr+1	     ; high byte ptr for TP sprite lookup table
+    sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
     
     lda #<TPColor
     sta TPColorPtr
@@ -123,37 +127,42 @@ Reset:
 StartFrame:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display VSYNC and VBLANK
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda #2
-    sta VBLANK               ; turn on VBLANK
-    sta VSYNC                ; turn on VSYNC
-    REPEAT 3
-        sta WSYNC            ; display 3 recommended lines of VSYNC
-    REPEND
-    lda #0
-    sta VSYNC                ; turn off VSYNC
-
-    REPEAT 33
-        sta WSYNC            ; display the (37-calculations)  recommended lines of VBLANK
-    REPEND
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations and tasks performed during the VBLANK section
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     lda PlayerXPos
-    ldy #0
-    jsr SetObjectXPos        ; set player horizontal position
+    ldy #0                           ; 0: player 0
+    jsr SetObjectXPos                ; set player horizontal position
 
     lda TPXPos
-    ldy #1
-    jsr SetObjectXPos        ; set TP horizontal position
+    ldy #4                           ; 4: ball RESBL
+    jsr SetObjectXPos                ; set TP horizontal position
+
+    lda ShoppingCartXPos
+    ldy #1                           ; 1: player 1
+    jsr SetObjectXPos                ; set cart horizontal position
 
     sta WSYNC
-    sta HMOVE                ; apply the horizontal offsets previously set
+    sta HMOVE                        ; apply the horizontal offsets previously set
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display VSYNC and VBLANK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    lda #2
+    sta VBLANK                       ; turn on VBLANK
+    sta VSYNC                        ; turn on VSYNC
+    REPEAT 3
+        sta WSYNC                    ; display 3 recommended lines of VSYNC
+    REPEND
+    lda #0
+    sta VSYNC                        ; turn off VSYNC
+
+    REPEAT 33
+        sta WSYNC                    ; display the (37-calculations)  recommended lines of VBLANK
+    REPEND
 
     lda #0
-    sta VBLANK               ; turn off VBLANK
+    sta VBLANK                       ; turn off VBLANK
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 96 visible scanlines of our main game because of 2-line kernel
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -167,59 +176,74 @@ StartFrame:
     lda #$FF
     sta PF0
     sta PF1
-    sta PF2                  ; draw the top edge border of the playing field
+    sta PF2                          ; draw the top edge border of the playing field
 	
     ldx #10
 .BorderTopLoop:
     sta WSYNC
 
     dex
-    bne .BorderTopLoop       ; border is 10 lines long
+    bne .BorderTopLoop               ; border is 10 lines long
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the remaining 76 playing field lines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldx #76                  ; remaining 76 lines (96-border top (10)-border bottom(10))
+    ldx #76                          ; remaining 76 lines (96-border top (10)-border bottom(10))
 .GameLineLoop:
 
     lda #$0
     sta PF0
     sta PF1
-    sta PF2                  ; clear border. Now we just render the main background color
+    sta PF2                          ; clear border. Now we just render the main background color
    
 .CheckInsidePlayer
-    txa 		     ; x has the current line x coordinate. Transfer to A register
-    sec                      ; make sure carry flag is set before subtraction
-    sbc PlayerYPos           ; subtract sprite Y-coordinate 
-    cmp #PLAYER_HEIGHT       ; are we inside the sprite height bounds?
-    bcc .DrawSpriteP0        ; if result < SpriteHeight, call the draw routine
-    lda #0                   ; else, set lookup index to zero
+    txa 		             ; x has the current line x coordinate. Transfer to A register
+    sec                              ; make sure carry flag is set before subtraction
+    sbc PlayerYPos                   ; subtract sprite Y-coordinate 
+    cmp #PLAYER_HEIGHT               ; are we inside the sprite height bounds?
+    bcc .DrawSpriteP0                ; if result < SpriteHeight, call the draw routine
+    lda #0                           ; else, set lookup index to zero
 
 .DrawSpriteP0:
-    clc                      ; clear carry flag before addition
-    adc renderOffset         ; jump to correct sprite frame address in memory
-    tay                      ; load Y so we can work with the pointer
+    clc                              ; clear carry flag before addition
+    adc renderOffset                 ; jump to correct sprite frame address in memory
+    tay                              ; load Y so we can work with the pointer
     lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
-    sta WSYNC                ; wait for scanline
-    sta GRP0                 ; set graphics for player0
+    sta WSYNC                        ; wait for scanline
+    sta GRP0                         ; set graphics for player0
     lda (PlayerRightColorPtr),Y      ; load player color from lookup table
-    sta COLUP0               ; set color of player 0    
+    sta COLUP0                       ; set color of player 0    
 
 .CheckInsideTP
-    txa 		     ; x has the current line x coordinate. Transfer to A register
-    sec                      ; make sure carry flag is set before subtraction
-    sbc TPYPos               ; subtract sprite Y-coordinate 
-    cmp #TP_HEIGHT           ; are we inside the TP sprite height bounds?
-    bcc .DrawTP              ; if result < TPHeight, call the draw routine
-    lda #0                   ; else, set lookup index to zero
+    txa 		             ; x has the current line y coordinate. Transfer to A register
+    sec                              ; make sure carry flag is set before subtraction
+    sbc TPYPos                       ; subtract sprite Y-coordinate 
+    cmp #TP_HEIGHT                   ; are we inside the TP sprite height bounds?
+    bcs .DontDrawTP                  ; if result > TPHeight, skip the draw routine
 
 .DrawTP:
-    tay                      ; load Y so we can work with the pointer
-    lda (TPSpritePtr),Y      ; load TP bitmap data from lookup table
-    sta WSYNC                ; wait for scanline
-    sta GRP1                 ; set graphics for TP
-    lda (TPColorPtr),Y       ; load TP color from lookup table
-    sta COLUP1               ; set color of TP
+    lda #%00000010
+    sta ENABL                        ; set graphics for TP
+    jmp .CheckInsideShoppingCart     ; skip to the next graphic
+.DontDrawTP
+    lda #%00000000
+    sta ENABL                        ; set graphics for TP
+
+.CheckInsideShoppingCart
+    txa 		             ; x has the current line x coordinate. Transfer to A register
+    sec                              ; make sure carry flag is set before subtraction
+    sbc ShoppingCartYPos             ; subtract sprite Y-coordinate 
+    cmp #CART_HEIGHT                 ; are we inside the cart sprite height bounds?
+    bcc .DrawShoppingCart            ; if result < CartHeight, call the draw routine
+    lda #0                           ; else, set lookup index to zero
+    
+.DrawShoppingCart:
+    tay                              ; load Y so we can work with the pointer
+    lda (ShoppingCartSpritePtr),Y    ; load cart bitmap data from lookup table
+    sta WSYNC                        ; wait for scanline
+    sta GRP1                         ; set graphics for cart
+    lda (ShoppingCartColorPtr),Y     ; load cart color from lookup table
+    sta COLUP1                       ; set color of cart
     
     dex
     bne .GameLineLoop
@@ -336,11 +360,11 @@ EndPositionXUpdate:          ; fallback for the position X update code
 ;; Check for object collision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CheckCollisionP0P1:
-    lda #%10000000           ; CXPPMM bit 7 detects P0 and P1 collision
-    bit CXPPMM               ; check CXPPMM bit 7 with the above pattern
-    bne .CollisionP0P1       ; if collision between P0 and P1 happened, branch
+    lda #%01000000           ; CXPPMM bit 6 detects P0 and BL collision
+    bit CXP0FB               ; check CXPPMM bit 6 with the above pattern
+    bne .CollisionP0BL       ; if collision between P0 and BL happened, branch
     jmp CheckCollisionP0PF   ; else, skip to next check
-.CollisionP0P1:
+.CollisionP0BL:
     jsr GameOver             ; call GameOver subroutine
 
 CheckCollisionP0PF:
@@ -387,6 +411,39 @@ GameOver subroutine
     lda #$30
     sta COLUBK
     rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subroutine to generate a Linear-Feedback Shift Register random number
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Generate a LFSR random number for the X-position of the shopping cart.
+;; Divide the random value by 4 to limit the size of the result to match river.
+;; Add 20 to compensate for the left of the playfield
+;; The routine also sets the Y-position of the cart to the top of the screen.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+GetRandomShoppingCartPos subroutine
+    lda Random
+    asl 
+    eor Random
+    asl 
+    eor Random
+    asl 
+    asl 
+    eor Random
+    asl 
+    rol Random               ; performs a series of shifts and bit operations
+
+    lsr 
+    lsr                      ; divide the value by 4 with 2 right shifts
+    sta ShoppingCartXPos     ; save it to the variable ShoppingCartXPos
+    lda #20 
+    adc ShoppingCartXPos     ; adds 20 + ShoppingCartXPos to compensate for left side of screen.
+                             ; We don't want to start it on top of the player immediately.
+    sta ShoppingCartXPos     ; and sets the new value to the bomber x-position
+
+    lda #69 
+    sta ShoppingCartYPos     ; set the y-position to the top of the screen
+
+    rts 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Declare Sprite Lookups
