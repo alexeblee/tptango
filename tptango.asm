@@ -37,7 +37,7 @@ ShoppingCartColorPtr	word
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PLAYER_HEIGHT = 9
 PLAYER_RIGHT_OFFSET = 9
-PLAYER_LEFT_OFFSET = 18
+PLAYER_LEFT_OFFSET = 27
 PLAYER_UP_DOWN_OFFSET = 36
 TP_HEIGHT = 3
 CART_HEIGHT = 9
@@ -284,7 +284,7 @@ CheckP0Up:
     bit SWCHA
     bne CheckP0Down          ; if bit pattern doesnt match, bypass Up block
     inc PlayerYPos
-    lda PLAYER_UP_DOWN_OFFSET; 27
+    lda PLAYER_UP_DOWN_OFFSET; 36
     sta renderOffset         ; 
 
 CheckP0Down:
@@ -292,7 +292,7 @@ CheckP0Down:
     bit SWCHA
     bne CheckP0Left          ; if bit pattern doesnt match, bypass Down block
     dec PlayerYPos
-    lda PLAYER_UP_DOWN_OFFSET; 27
+    lda PLAYER_UP_DOWN_OFFSET; 36
     sta renderOffset         ;
 
 CheckP0Left:
@@ -300,7 +300,7 @@ CheckP0Left:
     bit SWCHA
     bne CheckP0Right         ; if bit pattern doesnt match, bypass Left block
     dec PlayerXPos
-    lda PLAYER_LEFT_OFFSET   ; 18
+    lda PLAYER_LEFT_OFFSET   ; 27
     sta renderOffset         ; set animation offset to the second frame
 
 CheckP0Right:
@@ -359,20 +359,20 @@ EndPositionXUpdate:          ; fallback for the position X update code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check for object collision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CheckCollisionP0P1:
+CheckCollisionP0BL:          ; Check collision between player and TP
     lda #%01000000           ; CXPPMM bit 6 detects P0 and BL collision
     bit CXP0FB               ; check CXPPMM bit 6 with the above pattern
     bne .CollisionP0BL       ; if collision between P0 and BL happened, branch
-    jmp CheckCollisionP0PF   ; else, skip to next check
+    jmp CheckCollisionP0P1   ; else, skip to next check
 .CollisionP0BL:
     jsr GameOver             ; call GameOver subroutine
 
-CheckCollisionP0PF:
-    lda #%10000000           ; CXP0FB bit 7 detects P0 and PF collision
-    bit CXP0FB               ; check CXP0FB bit 7 with the above pattern
-    bne .CollisionP0PF       ; if collision P0 and PF happened, branch
+CheckCollisionP0P1:          ; Check collision between player and shopping cart
+    lda #%10000000           ; CXPPMM bit 7 detects P0 and P1 collision
+    bit CXPPMM               ; check CXPPMM bit 7 with the above pattern
+    bne .CollisionP0P1       ; if collision P0 and P1 happened, branch
     jmp EndCollisionCheck    ; else, skip to next check
-.CollisionP0PF:
+.CollisionP0P1:
     jsr GameOver             ; call GameOver subroutine
 
 EndCollisionCheck:           ; fallback
@@ -473,7 +473,7 @@ PlayerRightWalkSprite:
 PlayerLeftSprite:
         .byte #%00000000;$0E
         .byte #%00000000;$FE
-        .byte #%00101000;$FE
+        .byte #%00110000;$FE
         .byte #%00011000;$48
         .byte #%00011000;$48
         .byte #%00111000;$FE
@@ -484,7 +484,7 @@ PlayerLeftSprite:
 PlayerLeftWalkSprite:
         .byte #%00000000;$0E
         .byte #%00000000;$FE
-        .byte #%00110000;$FE
+        .byte #%00101000;$FE
         .byte #%00011000;$48
         .byte #%00011000;$48
         .byte #%00111000;$FE
