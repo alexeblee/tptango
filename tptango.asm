@@ -249,7 +249,7 @@ StartFrame:
     bne .GameLineLoop
 
     lda #0
-    sta renderOffset        ; reset animation frame to zero each frame	
+    sta renderOffset                 ; reset animation frame to zero each frame	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 10 lines of border edge
@@ -271,47 +271,47 @@ StartFrame:
 ;; Display Overscan
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     lda #2
-    sta VBLANK               ; turn on VBLANK again
+    sta VBLANK                       ; turn on VBLANK again
     REPEAT 30
-        sta WSYNC            ; display 30 recommended lines of VBlank Overscan
+        sta WSYNC                    ; display 30 recommended lines of VBlank Overscan
     REPEND
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CheckP0Up:
-    lda #%00010000           ; player0 joystick up
+    lda #%00010000                   ; player0 joystick up
     bit SWCHA
-    bne CheckP0Down          ; if bit pattern doesnt match, bypass Up block
+    bne CheckP0Down                  ; if bit pattern doesnt match, bypass Up block
     inc PlayerYPos
-    lda PLAYER_UP_DOWN_OFFSET; 36
-    sta renderOffset         ; 
+    lda PLAYER_UP_DOWN_OFFSET        ; 36
+    sta renderOffset                 ; 
 
 CheckP0Down:
-    lda #%00100000           ; player0 joystick down
+    lda #%00100000                   ; player0 joystick down
     bit SWCHA
-    bne CheckP0Left          ; if bit pattern doesnt match, bypass Down block
+    bne CheckP0Left                  ; if bit pattern doesnt match, bypass Down block
     dec PlayerYPos
-    lda PLAYER_UP_DOWN_OFFSET; 36
-    sta renderOffset         ;
+    lda PLAYER_UP_DOWN_OFFSET        ; 36
+    sta renderOffset                 ;
 
 CheckP0Left:
-    lda #%01000000           ; player0 joystick left
+    lda #%01000000		             ; player0 joystick left
     bit SWCHA
-    bne CheckP0Right         ; if bit pattern doesnt match, bypass Left block
+    bne CheckP0Right 		         ; if bit pattern doesnt match, bypass Left block
     dec PlayerXPos
-    lda PLAYER_LEFT_OFFSET   ; 27
-    sta renderOffset         ; set animation offset to the second frame
+    lda PLAYER_LEFT_OFFSET   		 ; 27
+    sta renderOffset        		 ; set animation offset to the second frame
 
 CheckP0Right:
-    lda #%10000000           ; player0 joystick right
+    lda #%10000000           		 ; player0 joystick right
     bit SWCHA
-    bne EndInputCheck        ; if bit pattern doesnt match, bypass Right block
+    bne EndInputCheck   		     ; if bit pattern doesnt match, bypass Right block
     inc PlayerXPos
-    lda PLAYER_RIGHT_OFFSET  ; 9
-    sta renderOffset         ; 
+    lda PLAYER_RIGHT_OFFSET  		 ; 9
+    sta renderOffset         		 ; 
 
-EndInputCheck:               ; fallback when no input was performed
+EndInputCheck:              		 ; fallback when no input was performed
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations to update position for next frame
@@ -319,12 +319,12 @@ EndInputCheck:               ; fallback when no input was performed
 UpdatePlayerYPosition:
     lda PlayerYPos
     clc
-    cmp #0                       ; compare player y-position with 0 (top of border)
-    bmi .ResetPlayerLowPosition  ; if it is < 0, then reset y-position to 0
+    cmp #0                       	 ; compare player y-position with 0 (top of border)
+    bmi .ResetPlayerLowPosition  	 ; if it is < 0, then reset y-position to 0
     lda PlayerYPos
     clc
     cmp #69
-    bcs .ResetPlayerHighPosition ; if it is at the top of the screen, reset
+    bcs .ResetPlayerHighPosition 	 ; if it is at the top of the screen, reset
     jmp EndPositionYUpdate
 .ResetPlayerLowPosition
     lda #0
@@ -334,17 +334,17 @@ UpdatePlayerYPosition:
     lda #69
     sta PlayerYPos
 
-EndPositionYUpdate:           ; fallback for the position update code
+EndPositionYUpdate:           		 ; fallback for the position update code
     
 UpdatePlayerXPosition:
     lda PlayerXPos
     clc
     cmp #0
-    bmi .ResetPlayerLeftPosition ; if it is on the left side of the screen, reset
+    bmi .ResetPlayerLeftPosition 	 ; if it is on the left side of the screen, reset
     lda PlayerXPos
     clc
     cmp #120
-    bcs .ResetPlayerRightPosition ; if it is on the right side of the screen, reset
+    bcs .ResetPlayerRightPosition 	 ; if it is on the right side of the screen, reset
     jmp EndPositionXUpdate
 .ResetPlayerLeftPosition
     lda #0
@@ -354,8 +354,19 @@ UpdatePlayerXPosition:
     lda #120
     sta PlayerXPos
 
-EndPositionXUpdate:          ; fallback for the position X update code
+EndPositionXUpdate:          		 ; fallback for the position X update code
 
+UpdateCartYPosition:
+    lda ShoppingCartYPos
+    clc
+    cmp #1                           ; compare cart y-position with 1 (bottom border)
+    bmi .ResetCartRandomPosition     ; if it is < 1, then reset y-position to 69
+    dec ShoppingCartYPos
+    jmp EndShoppingCartPositionUpdate 
+.ResetCartRandomPosition             ; if it is at the bottom of the screen, reset
+    jsr GetRandomShoppingCartPos
+
+EndShoppingCartPositionUpdate:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check for object collision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
