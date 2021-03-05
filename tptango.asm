@@ -12,10 +12,10 @@
     seg.u Variables
     org $80
 
-PlayerXPos		byte	     ; Player X position
-PlayerYPos		byte	     ; Player Y position
-TPXPos			byte	     
-TPYPos			byte	    
+PlayerXPos		    byte	     ; Player X position
+PlayerYPos		    byte	     ; Player Y position
+TPXPos			    byte	     
+TPYPos			    byte	    
 ShoppingCartXPos	byte
 ShoppingCartYPos	byte
 
@@ -31,6 +31,9 @@ TPSpritePtr		word
 TPColorPtr		word	
 ShoppingCartSpritePtr	word	 
 ShoppingCartColorPtr	word
+PF0Ptr			word		; pointer to the PF0 lookup table
+PF1Ptr			word		; pointer to the PF0 lookup table
+PF2Ptr			word		; pointer to the PF0 lookup table
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define Constants
@@ -121,6 +124,21 @@ Reset:
     lda #>TPColor
     sta TPColorPtr+1
 
+	lda #<BackgroundPF0
+	sta PF0Ptr
+	lda #>BackgroundPF0
+	sta PF0Ptr+1
+
+	lda #<BackgroundPF1
+	sta PF1Ptr
+	lda #>BackgroundPF1
+	sta PF1Ptr+1
+
+	lda #<BackgroundPF2
+	sta PF2Ptr
+	lda #>BackgroundPF2
+	sta PF2Ptr+1
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start the main display loop and frame rendering
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -156,7 +174,7 @@ StartFrame:
     lda #0
     sta VSYNC                        ; turn off VSYNC
 
-    REPEAT 33
+    REPEAT 37
         sta WSYNC                    ; display the (37-calculations)  recommended lines of VBLANK
     REPEND
 
@@ -169,33 +187,19 @@ StartFrame:
     ldx #%00000001 ; CTRLPF register (D0 is the reflect flag) 
     stx CTRLPF
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display the 10 lines of border edge
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    lda #$FF
-    sta PF0
-    sta PF1
-    sta PF2                          ; draw the top edge border of the playing field
-	
-    ldx #10
-.BorderTopLoop:
-    sta WSYNC
-
-    dex
-    bne .BorderTopLoop               ; border is 10 lines long
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display the remaining 76 playing field lines
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldx #76                          ; remaining 76 lines (96-border top (10)-border bottom(10))
+	ldx #96		; X counts the number of remaining scanlines
 .GameLineLoop:
 
-    lda #$0
-    sta PF0
-    sta PF1
-    sta PF2                          ; clear border. Now we just render the main background color
-   
+.DrawBackground
+	txa
+	tay
+	lda (PF0Ptr),Y
+	sta PF0
+	lda (PF1Ptr),Y
+	sta PF1
+	lda (PF2Ptr),Y
+	sta PF2
+
 .CheckInsidePlayer
     txa 		             ; x has the current line x coordinate. Transfer to A register
     sec                              ; make sure carry flag is set before subtraction
@@ -250,22 +254,6 @@ StartFrame:
 
     lda #0
     sta renderOffset                 ; reset animation frame to zero each frame	
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display the 10 lines of border edge
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-    lda #$FF
-    sta PF0
-    sta PF1
-    sta PF2
-    
-    ldx #10
-.BorderBottomLoop:
-    sta WSYNC
-
-    dex
-    bne .BorderBottomLoop
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display Overscan
@@ -612,6 +600,303 @@ ShoppingCartColor:
         .byte #$04;
         .byte #$42;
         .byte #$0E;
+
+BackgroundPF0:
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$10;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$F0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+
+BackgroundPF1:
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$20;
+        .byte #$20;
+        .byte #$20;
+        .byte #$20;
+        .byte #$20;
+        .byte #$20;
+        .byte #$22;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$2;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+
+BackgroundPF2:
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$4;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$FF;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
+        .byte #$0;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Complete ROM size with exactly 4KB
