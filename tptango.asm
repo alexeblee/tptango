@@ -12,8 +12,8 @@
     seg.u Variables
     org $80
 
-PlayerXPos		    byte	     ; Player X position
-PlayerYPos		    byte	     ; Player Y position
+PlayerXPos		    byte	         ; Player X position
+PlayerYPos		    byte	         ; Player Y position
 TPXPos			    byte	     
 TPYPos			    byte	    
 ShoppingCartXPos	byte
@@ -23,17 +23,17 @@ Random                  byte         ; Random X starting position of shopping ca
 
 renderOffset            byte
 
-PlayerLeftSpritePtr	word	     ; Pointer to PlayerLeftSprite lookup table 
-PlayerLeftColorPtr	word	     ; Pointer to PlayerLeftColor lookup table 
+PlayerLeftSpritePtr	word	         ; Pointer to PlayerLeftSprite lookup table 
+PlayerLeftColorPtr	word	         ; Pointer to PlayerLeftColor lookup table 
 PlayerRightSpritePtr	word	     ; Pointer to PlayerRightSprite lookup table 
-PlayerRightColorPtr	word	     ; Pointer to PlayerRightColor lookup table 
+PlayerRightColorPtr	word	         ; Pointer to PlayerRightColor lookup table 
 TPSpritePtr		word	 
 TPColorPtr		word	
 ShoppingCartSpritePtr	word	 
 ShoppingCartColorPtr	word
-PF0Ptr			word		; pointer to the PF0 lookup table
-PF1Ptr			word		; pointer to the PF0 lookup table
-PF2Ptr			word		; pointer to the PF0 lookup table
+PF0Ptr			word		         ; pointer to the PF0 lookup table
+PF1Ptr			word	             ; pointer to the PF0 lookup table
+PF2Ptr			word	             ; pointer to the PF0 lookup table
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define Constants
@@ -145,6 +145,22 @@ Reset:
 StartFrame:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Display VSYNC and VBLANK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    lda #2
+    sta VBLANK                       ; turn on VBLANK
+    sta VSYNC                        ; turn on VSYNC
+    REPEAT 3
+        sta WSYNC                    ; display 3 recommended lines of VSYNC
+    REPEND
+    lda #0
+    sta VSYNC                        ; turn off VSYNC
+
+    REPEAT 33
+        sta WSYNC                    ; display the (37-calculations)  recommended lines of VBLANK
+    REPEND
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations and tasks performed during the VBLANK section
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     lda PlayerXPos
@@ -162,32 +178,18 @@ StartFrame:
     sta WSYNC
     sta HMOVE                        ; apply the horizontal offsets previously set
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display VSYNC and VBLANK
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda #2
-    sta VBLANK                       ; turn on VBLANK
-    sta VSYNC                        ; turn on VSYNC
-    REPEAT 3
-        sta WSYNC                    ; display 3 recommended lines of VSYNC
-    REPEND
-    lda #0
-    sta VSYNC                        ; turn off VSYNC
+    ldx #%00000001 ; CTRLPF register (D0 is the reflect flag) 
+    stx CTRLPF
 
-    REPEAT 37
-        sta WSYNC                    ; display the (37-calculations)  recommended lines of VBLANK
-    REPEND
-
+    sta WSYNC                        ; WSYNC to start fresh after HMOVE
     lda #0
     sta VBLANK                       ; turn off VBLANK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 96 visible scanlines of our main game because of 2-line kernel
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldx #%00000001 ; CTRLPF register (D0 is the reflect flag) 
-    stx CTRLPF
-
 	ldx #96		; X counts the number of remaining scanlines
+
 .GameLineLoop:
 
 .DrawBackground
@@ -231,7 +233,7 @@ StartFrame:
     jmp .CheckInsideShoppingCart     ; skip to the next graphic
 .DontDrawTP
     lda #%00000000
-    sta ENABL                        ; set graphics for TP
+    sta ENABL                        ; unset graphics for TP
 
 .CheckInsideShoppingCart
     txa 		             ; x has the current line x coordinate. Transfer to A register
@@ -254,6 +256,8 @@ StartFrame:
 
     lda #0
     sta renderOffset                 ; reset animation frame to zero each frame	
+     
+    sta WSYNC                        ; wait for a scanline before drawing vblank
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display Overscan
