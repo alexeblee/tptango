@@ -214,12 +214,13 @@ StartFrame:
     clc                              ; clear carry flag before addition
     adc renderOffset                 ; jump to correct sprite frame address in memory
     tay                              ; load Y so we can work with the pointer
-    lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
-    sta WSYNC                        ; wait for scanline
-    sta GRP0                         ; set graphics for player0
     lda (PlayerRightColorPtr),Y      ; load player color from lookup table
     sta COLUP0                       ; set color of player 0    
-
+    lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
+    sta GRP0                         ; set graphics for player0
+    sta WSYNC                        ; wait for scanline
+;------------------------------------------------------------- line 2    
+	
 .CheckInsideTP
     txa 		             ; x has the current line y coordinate. Transfer to A register
     sec                              ; make sure carry flag is set before subtraction
@@ -245,12 +246,12 @@ StartFrame:
     
 .DrawShoppingCart:
     tay                              ; load Y so we can work with the pointer
-    lda (ShoppingCartSpritePtr),Y    ; load cart bitmap data from lookup table
-    sta WSYNC                        ; wait for scanline
-    sta GRP1                         ; set graphics for cart
     lda (ShoppingCartColorPtr),Y     ; load cart color from lookup table
     sta COLUP1                       ; set color of cart
-    
+    lda (ShoppingCartSpritePtr),Y    ; load cart bitmap data from lookup table
+    sta GRP1                         ; set graphics for cart
+    sta WSYNC                       
+ 
     dex
     bne .GameLineLoop
 
