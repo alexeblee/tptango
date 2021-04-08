@@ -12,28 +12,30 @@
     seg.u Variables
     org $80
 
-PlayerXPos		    byte	         ; Player X position
-PlayerYPos		    byte	         ; Player Y position
-TPXPos			    byte	     
-TPYPos			    byte	    
-ShoppingCartXPos	byte
-ShoppingCartYPos	byte
+PlayerXPos		        byte	     ; Player X position
+PlayerYPos		        byte	     ; Player Y position
+PrevPlayerXPos          byte         ; X Pos from previous frame
+PrevPlayerYPos          byte         ; Y Pos from previous frame
+TPXPos			        byte	     
+TPYPos			        byte	    
+ShoppingCartXPos	    byte
+ShoppingCartYPos	    byte
 
 Random                  byte         ; Random X starting position of shopping cart 1
 
 renderOffset            byte
 
-PlayerLeftSpritePtr	word	         ; Pointer to PlayerLeftSprite lookup table 
-PlayerLeftColorPtr	word	         ; Pointer to PlayerLeftColor lookup table 
+PlayerLeftSpritePtr	    word	     ; Pointer to PlayerLeftSprite lookup table 
+PlayerLeftColorPtr	    word	     ; Pointer to PlayerLeftColor lookup table 
 PlayerRightSpritePtr	word	     ; Pointer to PlayerRightSprite lookup table 
-PlayerRightColorPtr	word	         ; Pointer to PlayerRightColor lookup table 
-TPSpritePtr		word	 
-TPColorPtr		word	
+PlayerRightColorPtr	    word         ; Pointer to PlayerRightColor lookup table 
+TPSpritePtr		        word	 
+TPColorPtr		        word	
 ShoppingCartSpritePtr	word	 
 ShoppingCartColorPtr	word
-PF0Ptr			word		         ; pointer to the PF0 lookup table
-PF1Ptr			word	             ; pointer to the PF0 lookup table
-PF2Ptr			word	             ; pointer to the PF0 lookup table
+PF0Ptr			        word         ; pointer to the PF0 lookup table
+PF1Ptr			        word         ; pointer to the PF0 lookup table
+PF2Ptr			        word         ; pointer to the PF0 lookup table
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define Constants
@@ -59,13 +61,18 @@ Reset:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     lda #0
     sta PlayerXPos                   ; start the player on the lefthand side of the screen
+    sta PrevPlayerXPos
     lda #50
     sta PlayerYPos                   ; start the player somewhere in the middle of the screen
+    sta PrevPlayerYPos
 
     lda #120
     sta TPXPos
     lda #65
     sta TPYPos
+
+    lda %001 
+    sta NUSIZ1                       ; create more than one shopping cart
 
     lda #50
     sta ShoppingCartXPos
@@ -276,6 +283,9 @@ CheckP0Up:
     lda #%00010000                   ; player0 joystick up
     bit SWCHA
     bne CheckP0Down                  ; if bit pattern doesnt match, bypass Up block
+    lda PlayerYPos
+    sta PrevPlayerYPos
+    dec PrevPlayerYPos
     inc PlayerYPos
     lda PLAYER_UP_DOWN_OFFSET        ; 36
     sta renderOffset                 ; 
@@ -284,6 +294,9 @@ CheckP0Down:
     lda #%00100000                   ; player0 joystick down
     bit SWCHA
     bne CheckP0Left                  ; if bit pattern doesnt match, bypass Down block
+    lda PlayerYPos
+    sta PrevPlayerYPos
+    inc PrevPlayerYPos
     dec PlayerYPos
     lda PLAYER_UP_DOWN_OFFSET        ; 36
     sta renderOffset                 ;
@@ -292,6 +305,9 @@ CheckP0Left:
     lda #%01000000		             ; player0 joystick left
     bit SWCHA
     bne CheckP0Right 		         ; if bit pattern doesnt match, bypass Left block
+    lda PlayerXPos
+    sta PrevPlayerXPos
+    inc PrevPlayerXPos
     dec PlayerXPos
     lda PLAYER_LEFT_OFFSET   		 ; 27
     sta renderOffset        		 ; set animation offset to the second frame
@@ -300,6 +316,9 @@ CheckP0Right:
     lda #%10000000           		 ; player0 joystick right
     bit SWCHA
     bne EndInputCheck   		     ; if bit pattern doesnt match, bypass Right block
+    lda PlayerXPos
+    sta PrevPlayerXPos
+    dec PrevPlayerXPos    
     inc PlayerXPos
     lda PLAYER_RIGHT_OFFSET  		 ; 9
     sta renderOffset         		 ; 
@@ -309,46 +328,6 @@ EndInputCheck:              		 ; fallback when no input was performed
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations to update position for next frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-UpdatePlayerYPosition:
-    lda PlayerYPos
-    clc
-    cmp #0                       	 ; compare player y-position with 0 (top of border)
-    bmi .ResetPlayerLowPosition  	 ; if it is < 0, then reset y-position to 0
-    lda PlayerYPos
-    clc
-    cmp #69
-    bcs .ResetPlayerHighPosition 	 ; if it is at the top of the screen, reset
-    jmp EndPositionYUpdate
-.ResetPlayerLowPosition
-    lda #0
-    sta PlayerYPos
-    jmp EndPositionYUpdate
-.ResetPlayerHighPosition
-    lda #69
-    sta PlayerYPos
-
-EndPositionYUpdate:           		 ; fallback for the position update code
-    
-UpdatePlayerXPosition:
-    lda PlayerXPos
-    clc
-    cmp #0
-    bmi .ResetPlayerLeftPosition 	 ; if it is on the left side of the screen, reset
-    lda PlayerXPos
-    clc
-    cmp #120
-    bcs .ResetPlayerRightPosition 	 ; if it is on the right side of the screen, reset
-    jmp EndPositionXUpdate
-.ResetPlayerLeftPosition
-    lda #0
-    sta PlayerXPos
-    jmp EndPositionXUpdate
-.ResetPlayerRightPosition
-    lda #120
-    sta PlayerXPos
-
-EndPositionXUpdate:          		 ; fallback for the position X update code
-
 UpdateCartYPosition:
     lda ShoppingCartYPos
     clc
@@ -360,12 +339,13 @@ UpdateCartYPosition:
     jsr GetRandomShoppingCartPos
 
 EndShoppingCartPositionUpdate:
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check for object collision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CheckCollisionP0BL:          ; Check collision between player and TP
     lda #%01000000           ; CXPPMM bit 6 detects P0 and BL collision
-    bit CXP0FB               ; check CXPPMM bit 6 with the above pattern
+    bit CXP0FB               ; check CXP0FB bit 6 with the above pattern
     bne .CollisionP0BL       ; if collision between P0 and BL happened, branch
     jmp CheckCollisionP0P1   ; else, skip to next check
 .CollisionP0BL:
@@ -375,9 +355,17 @@ CheckCollisionP0P1:          ; Check collision between player and shopping cart
     lda #%10000000           ; CXPPMM bit 7 detects P0 and P1 collision
     bit CXPPMM               ; check CXPPMM bit 7 with the above pattern
     bne .CollisionP0P1       ; if collision P0 and P1 happened, branch
-    jmp EndCollisionCheck    ; else, skip to next check
+    jmp CheckCollisionP0PF   ; else, skip to next check
 .CollisionP0P1:
     jsr GameOver             ; call GameOver subroutine
+
+CheckCollisionP0PF:
+    lda #%10000000           ; CXP0FB bit 7 detects P0 and PF collision
+    bit CXP0FB               ; check CXP0FB bit 7 with the above pattern
+    bne .CollisionP0PF       ; if collision P0 and PF happened, branch
+    jmp EndCollisionCheck    ; else, skip to next check
+.CollisionP0PF:
+    jsr PFCollide            ; call subroutine to reset player position
 
 EndCollisionCheck:           ; fallback
     sta CXCLR                ; clear all collision flags before the next frame
@@ -406,6 +394,16 @@ SetObjectXPos subroutine
     asl                      ; four shift lefts to get only the top 4 bits
     sta HMP0,Y               ; store the fine offset to the correct HMxx
     sta RESP0,Y              ; fix object position in 15-step increment
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Player/Playfield Collide Subroutine
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PFCollide subroutine
+  	lda PrevPlayerXPos
+  	sta PlayerXPos
+  	lda PrevPlayerYPos
+  	sta PlayerYPos
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
