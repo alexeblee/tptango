@@ -277,55 +277,6 @@ StartFrame:
     REPEND
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Process joystick input for player0
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CheckP0Up:
-    lda #%00010000                   ; player0 joystick up
-    bit SWCHA
-    bne CheckP0Down                  ; if bit pattern doesnt match, bypass Up block
-    lda PlayerYPos
-    sta PrevPlayerYPos
-    dec PrevPlayerYPos
-    inc PlayerYPos
-    lda PLAYER_UP_DOWN_OFFSET        ; 36
-    sta renderOffset                 ; 
-
-CheckP0Down:
-    lda #%00100000                   ; player0 joystick down
-    bit SWCHA
-    bne CheckP0Left                  ; if bit pattern doesnt match, bypass Down block
-    lda PlayerYPos
-    sta PrevPlayerYPos
-    inc PrevPlayerYPos
-    dec PlayerYPos
-    lda PLAYER_UP_DOWN_OFFSET        ; 36
-    sta renderOffset                 ;
-
-CheckP0Left:
-    lda #%01000000		             ; player0 joystick left
-    bit SWCHA
-    bne CheckP0Right 		         ; if bit pattern doesnt match, bypass Left block
-    lda PlayerXPos
-    sta PrevPlayerXPos
-    inc PrevPlayerXPos
-    dec PlayerXPos
-    lda PLAYER_LEFT_OFFSET   		 ; 27
-    sta renderOffset        		 ; set animation offset to the second frame
-
-CheckP0Right:
-    lda #%10000000           		 ; player0 joystick right
-    bit SWCHA
-    bne EndInputCheck   		     ; if bit pattern doesnt match, bypass Right block
-    lda PlayerXPos
-    sta PrevPlayerXPos
-    dec PrevPlayerXPos    
-    inc PlayerXPos
-    lda PLAYER_RIGHT_OFFSET  		 ; 9
-    sta renderOffset         		 ; 
-
-EndInputCheck:              		 ; fallback when no input was performed
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations to update position for next frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 UpdateCartYPosition:
@@ -369,6 +320,49 @@ CheckCollisionP0PF:
 
 EndCollisionCheck:           ; fallback
     sta CXCLR                ; clear all collision flags before the next frame
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Process joystick input for player0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+StorePositions:
+    lda PlayerYPos
+    sta PrevPlayerYPos
+    lda PlayerXPos
+    sta PrevPlayerXPos
+
+CheckP0Up:
+    lda #%00010000                   ; player0 joystick up
+    bit SWCHA
+    bne CheckP0Down                  ; if bit pattern doesnt match, bypass Up block
+    inc PlayerYPos
+    lda PLAYER_UP_DOWN_OFFSET        ; 36
+    sta renderOffset                 ; 
+
+CheckP0Down:
+    lda #%00100000                   ; player0 joystick down
+    bit SWCHA
+    bne CheckP0Left                  ; if bit pattern doesnt match, bypass Down block
+    dec PlayerYPos
+    lda PLAYER_UP_DOWN_OFFSET        ; 36
+    sta renderOffset                 ;
+
+CheckP0Left:
+    lda #%01000000                   ; player0 joystick left
+    bit SWCHA
+    bne CheckP0Right                 ; if bit pattern doesnt match, bypass Left block
+    dec PlayerXPos
+    lda PLAYER_LEFT_OFFSET           ; 27
+    sta renderOffset                 ; set animation offset to the second frame
+
+CheckP0Right:
+    lda #%10000000                   ; player0 joystick right
+    bit SWCHA
+    bne EndInputCheck                ; if bit pattern doesnt match, bypass Right block
+    inc PlayerXPos
+    lda PLAYER_RIGHT_OFFSET          ; 9
+    sta renderOffset                 ; 
+
+EndInputCheck:                       ; fallback when no input was performed
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
