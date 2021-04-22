@@ -59,14 +59,14 @@ Reset:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialize Variables in RAM and TIA Registers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda #0
+    lda #10
     sta PlayerXPos                   ; start the player on the lefthand side of the screen
     sta PrevPlayerXPos
     lda #50
     sta PlayerYPos                   ; start the player somewhere in the middle of the screen
     sta PrevPlayerYPos
 
-    lda #120
+    lda #150
     sta TPXPos
     lda #65
     sta TPYPos
@@ -170,17 +170,18 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Calculations and tasks performed during the VBLANK section
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda PlayerXPos
-    ldy #0                           ; 0: player 0
-    jsr SetObjectXPos                ; set player horizontal position
 
     lda TPXPos
-    ldy #4                           ; 4: ball RESBL
+    ldx #4                           ; 4: ball RESBL
     jsr SetObjectXPos                ; set TP horizontal position
 
     lda ShoppingCartXPos
-    ldy #1                           ; 1: player 1
+    ldx #1                           ; 1: player 1
     jsr SetObjectXPos                ; set cart horizontal position
+    
+    lda PlayerXPos
+    ldx #0                           ; 0: player 0
+    jsr SetObjectXPos                ; set player horizontal position
 
     sta WSYNC
     sta HMOVE                        ; apply the horizontal offsets previously set
@@ -372,22 +373,28 @@ EndInputCheck:                       ; fallback when no input was performed
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutine to handle object horizontal position with fine offset
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; A is the target x-coordinate position in pixels of our object
-;; Y is the object type (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+; Inputs: A = Desired position.
+; X = Desired object to be positioned (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+; scanlines: If control comes on or before cycle 73 then 1 scanline is consumed.
+; If control comes after cycle 73 then 2 scanlines are consumed.
+; Outputs: X = unchanged
+; A = Fine Adjustment value.
+; Y = the "remainder" of the division by 15 minus an additional 15.
+; control is returned on cycle 6 of the next scanline.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Positions an object horizontally
 SetObjectXPos subroutine
-    sta WSYNC                ; start a fresh new scanline
-    sec                      ; make sure carry-flag is set before subtracion
+    sta WSYNC                 ; start a fresh new scanline
+    sec                       ; make sure carry-flag is set before subtracion
 .Div15Loop
-    sbc #15                  ; subtract 15 from accumulator
-    bcs .Div15Loop           ; loop until carry-flag is clear
-    eor #7                   ; handle offset range from -8 to 7
-    asl
-    asl
-    asl
-    asl                      ; four shift lefts to get only the top 4 bits
-    sta HMP0,Y               ; store the fine offset to the correct HMxx
-    sta RESP0,Y              ; fix object position in 15-step increment
+    sbc #15                   ; subtract 15 from accumulator
+    bcs .Div15Loop            ; loop until carry-flag is clear
+    
+    tay
+    lda fineAdjustTable,Y     ; 13 -> Consume 5 cycles by guaranteeing we cross a page boundary
+    sta HMP0,X
+    sta RESP0,X               ; 21/ 26/31/36/41/46/51/56/61/66/71 - Set the rough position.
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -445,455 +452,481 @@ GetRandomShoppingCartPos subroutine
 ;; Declare Sprite Lookups
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlayerRightSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$FE
-        .byte #%00110000;$FE
-        .byte #%00110000;$48
-        .byte #%00110000;$48
-        .byte #%00111000;$FE
-        .byte #%00111000;$FE
-        .byte #%00111000;$F2
-        .byte #%00000000;--
+    .byte #%00000000;$0E
+    .byte #%00000000;$FE
+    .byte #%00110000;$FE
+    .byte #%00110000;$48
+    .byte #%00110000;$48
+    .byte #%00111000;$FE
+    .byte #%00111000;$FE
+    .byte #%00111000;$F2
+    .byte #%00000000;--
 
 PlayerRightWalkSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$FE
-        .byte #%00101000;$FE
-        .byte #%00110000;$48
-        .byte #%00110000;$48
-        .byte #%00111000;$FE
-        .byte #%00111000;$FE
-        .byte #%00111000;$F2
-        .byte #%00000000;--
+    .byte #%00000000;$0E
+    .byte #%00000000;$FE
+    .byte #%00101000;$FE
+    .byte #%00110000;$48
+    .byte #%00110000;$48
+    .byte #%00111000;$FE
+    .byte #%00111000;$FE
+    .byte #%00111000;$F2
+    .byte #%00000000;--
 
 PlayerLeftSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$FE
-        .byte #%00110000;$FE
-        .byte #%00011000;$48
-        .byte #%00011000;$48
-        .byte #%00111000;$FE
-        .byte #%00111000;$FE
-        .byte #%00111000;$F2
-        .byte #%00000000;--
+    .byte #%00000000;$0E
+    .byte #%00000000;$FE
+    .byte #%00110000;$FE
+    .byte #%00011000;$48
+    .byte #%00011000;$48
+    .byte #%00111000;$FE
+    .byte #%00111000;$FE
+    .byte #%00111000;$F2
+    .byte #%00000000;--
 
 PlayerLeftWalkSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$FE
-        .byte #%00101000;$FE
-        .byte #%00011000;$48
-        .byte #%00011000;$48
-        .byte #%00111000;$FE
-        .byte #%00111000;$FE
-        .byte #%00111000;$F2
-        .byte #%00000000;--
+    .byte #%00000000;$0E
+    .byte #%00000000;$FE
+    .byte #%00101000;$FE
+    .byte #%00011000;$48
+    .byte #%00011000;$48
+    .byte #%00111000;$FE
+    .byte #%00111000;$FE
+    .byte #%00111000;$F2
+    .byte #%00000000;--
 
 PlayerUpDownWalkSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$FE
-        .byte #%00101000;$FE
-        .byte #%00111000;$48
-        .byte #%00111000;$48
-        .byte #%00111000;$FE
-        .byte #%00111000;$FE
-        .byte #%00111000;$F2
-        .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$FE
+    .byte #%00101000;$FE
+    .byte #%00111000;$48
+    .byte #%00111000;$48
+    .byte #%00111000;$FE
+    .byte #%00111000;$FE
+    .byte #%00111000;$F2
+    .byte #%00000000;$0E
 
 PlayerRightColor:
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$48;
+    .byte #$48;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$F2;
+    .byte #$0E;
 
 PlayerRightWalkColor:
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$48;
+    .byte #$48;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$F2;
+    .byte #$0E;
 
 PlayerLeftColor:
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$48;
+    .byte #$48;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$F2;
+    .byte #$0E;
 
 PlayerLeftWalkColor
-        .byte #$00;
-	.byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$48;
+    .byte #$48;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$F2;
+    .byte #$0E;
 
 PlayerUpDownWalkColor:
-        .byte #$00;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$48;
-        .byte #$48;
-        .byte #$FE;
-        .byte #$FE;
-        .byte #$F2;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$48;
+    .byte #$48;
+    .byte #$FE;
+    .byte #$FE;
+    .byte #$F2;
+    .byte #$0E;
 
 TPSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$0E
-        .byte #%00000000;$0E
-        .byte #%00011000;$0E
-        .byte #%00011000;$0E
-        .byte #%00011000;$0E
-        .byte #%00000000;$0E
-        .byte #%00000000;$0E
-        .byte #%00000000;--
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00011000;$0E
+    .byte #%00011000;$0E
+    .byte #%00011000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;--
 
 TPColor:
-        .byte #$00;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$0E;
+    .byte #$0E;
+    .byte #$0E;
+    .byte #$0E;
+    .byte #$0E;
+    .byte #$0E;
+    .byte #$0E;
+    .byte #$0E;
 
 ShoppingCartSprite:
-        .byte #%00000000;$0E
-        .byte #%00000000;$04
-        .byte #%00011000;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00100100;$04
-        .byte #%00111100;$42
-        .byte #%00000000;--
+    .byte #%00000000;$0E
+    .byte #%00000000;$04
+    .byte #%00011000;$04
+    .byte #%00100100;$04
+    .byte #%00100100;$04
+    .byte #%00100100;$04
+    .byte #%00100100;$04
+    .byte #%00111100;$42
+    .byte #%00000000;--
 
 ShoppingCartColor:
-        .byte #$00;
-        .byte #$04;
-        .byte #$04;
-        .byte #$04;
-        .byte #$04;
-        .byte #$04;
-        .byte #$04;
-        .byte #$42;
-        .byte #$0E;
+    .byte #$00;
+    .byte #$04;
+    .byte #$04;
+    .byte #$04;
+    .byte #$04;
+    .byte #$04;
+    .byte #$04;
+    .byte #$42;
+    .byte #$0E;
 
 BackgroundPF0:
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$10;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$F0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$10;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$F0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
 
 BackgroundPF1:
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$20;
-        .byte #$20;
-        .byte #$20;
-        .byte #$20;
-        .byte #$20;
-        .byte #$20;
-        .byte #$22;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$2;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$20;
+    .byte #$20;
+    .byte #$20;
+    .byte #$20;
+    .byte #$20;
+    .byte #$20;
+    .byte #$22;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$2;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
 
 BackgroundPF2:
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$4;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$FF;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
-        .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$4;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$FF;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+    .byte #$0;
+
+;-----------------------------
+; This table converts the "remainder" of the division by 15 (-1 to -15) to the correct
+; fine adjustment value. This table is on a page boundary to guarantee the processor
+; will cross a page boundary and waste a cycle in order to be at the precise position
+; for a RESP0,x write
+    org $FE00               ; move to position $FE00
+
+fineAdjustBegin
+    DC.B %01110000          ; Left 7 
+    DC.B %01100000          ; Left 6
+    DC.B %01010000          ; Left 5
+    DC.B %01000000          ; Left 4
+    DC.B %00110000          ; Left 3
+    DC.B %00100000          ; Left 2
+    DC.B %00010000          ; Left 1
+    DC.B %00000000          ; No movement.
+    DC.B %11110000          ; Right 1
+    DC.B %11100000          ; Right 2
+    DC.B %11010000          ; Right 3
+    DC.B %11000000          ; Right 4
+    DC.B %10110000          ; Right 5
+    DC.B %10100000          ; Right 6
+    DC.B %10010000          ; Right 7
+
+fineAdjustTable EQU fineAdjustBegin - %11110001; NOTE: %11110001 = -15
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Complete ROM size with exactly 4KB
