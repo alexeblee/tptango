@@ -25,6 +25,8 @@ Random                  byte         ; Random X starting position of shopping ca
 
 renderOffset            byte
 
+Score                   byte         ; number of TP objects collected
+
 PlayerLeftSpritePtr	    word	     ; Pointer to PlayerLeftSprite lookup table 
 PlayerLeftColorPtr	    word	     ; Pointer to PlayerLeftColor lookup table 
 PlayerRightSpritePtr	word	     ; Pointer to PlayerRightSprite lookup table 
@@ -33,6 +35,7 @@ TPSpritePtr		        word
 TPColorPtr		        word	
 ShoppingCartSpritePtr	word	 
 ShoppingCartColorPtr	word
+
 PF0Ptr			        word         ; pointer to the PF0 lookup table
 PF1Ptr			        word         ; pointer to the PF0 lookup table
 PF2Ptr			        word         ; pointer to the PF0 lookup table
@@ -71,15 +74,18 @@ Reset:
     lda #65
     sta TPYPos
 
-    lda %001 
-    sta NUSIZ1                       ; create more than one shopping cart
-
     lda #50
     sta ShoppingCartXPos
     lda #10
     sta ShoppingCartYPos
     lda #%11010100
     sta Random                       ; Random = $D4
+
+    lda %001 
+    sta NUSIZ1                       ; create more than one shopping cart
+
+    lda #0
+    sta Score
  
     lda #$AE
     sta COLUBK                       ; set background color to blue
@@ -196,7 +202,29 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 96 visible scanlines of our main game because of 2-line kernel
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	ldx #96		; X counts the number of remaining scanlines
+    ldx #96
+
+;.DisplayScoreboard
+;	txa
+;    tay
+;	lda (PF0Ptr),Y
+;	sta PF0
+;	lda (PF1Ptr),Y
+;	sta PF1
+;	lda (PF2Ptr),Y
+;	sta PF2
+;    
+;    sta WSYNC
+;    sta WSYNC
+;    dex
+;    txa
+;    sec
+;    sbc #90
+;    cmp #0
+;    bcc .DisplayScoreboard
+;
+;.SetOutsideScoreboard
+;    ldx #90                          ; set X to 90 to count remaining scanlines of playfield
 
 .GameLineLoop:
 
@@ -697,11 +725,11 @@ BackgroundPF0:
     .byte #$F0;
     .byte #$F0;
     .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
+    .byte #$C0;
+    .byte #$80;
+    .byte #$C0;
+    .byte #$40;
+    .byte #$C0;
     .byte #$0;
 
 BackgroundPF1:
@@ -796,11 +824,11 @@ BackgroundPF1:
     .byte #$FF;
     .byte #$FF;
     .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
+    .byte #$6D;
+    .byte #$4D;
+    .byte #$4D;
+    .byte #$4D;
+    .byte #$6D;   
     .byte #$0;
 
 BackgroundPF2:
@@ -895,11 +923,11 @@ BackgroundPF2:
     .byte #$FF;
     .byte #$FF;
     .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
-    .byte #$0;
+    .byte #$C;
+    .byte #$4;
+    .byte #$C;
+    .byte #$4;
+    .byte #$D;
     .byte #$0;
 
 ;-----------------------------
