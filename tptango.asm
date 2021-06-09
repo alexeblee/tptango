@@ -202,29 +202,36 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Display the 96 visible scanlines of our main game because of 2-line kernel
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldx #96
+    ldx #96                          ; display 6 lines of scoreboard
 
-;.DisplayScoreboard
-;	txa
-;    tay
-;	lda (PF0Ptr),Y
-;	sta PF0
-;	lda (PF1Ptr),Y
-;	sta PF1
-;	lda (PF2Ptr),Y
-;	sta PF2
-;    
-;    sta WSYNC
-;    sta WSYNC
-;    dex
-;    txa
-;    sec
-;    sbc #90
-;    cmp #0
-;    bcc .DisplayScoreboard
-;
-;.SetOutsideScoreboard
-;    ldx #90                          ; set X to 90 to count remaining scanlines of playfield
+.DisplayScoreboard
+    REPEAT 2                         ; repeat twice for 2-line kernel
+        txa
+        tay
+	    lda (PF0Ptr),Y
+	    sta PF0
+	    lda (PF1Ptr),Y
+	    sta PF1
+	    lda (PF2Ptr),Y
+        sta PF2                      ; we've now displayed "SCORE"
+        
+        txa
+        sbc #89
+        tay  
+        lda #0
+        sta PF0
+        sta PF2
+        lda (TPSpritePtr),Y
+        sta PF1                      ; render the actual TP score
+
+        sta WSYNC
+    REPEND
+    dex
+    cpx #90
+    bne .DisplayScoreboard
+
+.SetOutsideScoreboard
+    ldx #90                          ; set X to 90 to count remaining scanlines of playfield
 
 .GameLineLoop:
 
@@ -471,7 +478,7 @@ GetRandomShoppingCartPos subroutine
                              ; We don't want to start it on top of the player immediately.
     sta ShoppingCartXPos     ; and sets the new value to the bomber x-position
 
-    lda #69 
+    lda #76 
     sta ShoppingCartYPos     ; set the y-position to the top of the screen
 
     rts 
