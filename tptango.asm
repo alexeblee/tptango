@@ -127,9 +127,9 @@ Reset:
     lda #>ShoppingCartColor
     sta ShoppingCartColorPtr+1
     
-    lda #<TPSprite
+    lda #<TPSpriteThree
     sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
-    lda #>TPSprite
+    lda #>TPSpriteThree
     sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
     
     lda #<TPColor
@@ -205,7 +205,7 @@ StartFrame:
     ldx #96                          ; display 6 lines of scoreboard
 
 .DisplayScoreboard
-    REPEAT 2                         ; repeat twice for 2-line kernel
+    REPEAT 2
         txa
         tay
 	    lda (PF0Ptr),Y
@@ -220,8 +220,15 @@ StartFrame:
         tay  
         lda #0
         sta PF0
+;       sta PF1                      ; render the actual TP score
         sta PF2
         lda (TPSpritePtr),Y
+;       sta WSYNC
+
+;       jsr Sleep12Cycles            ; wastes some cycles        
+;       jsr Sleep12Cycles            ; wastes some cycles        
+;       jsr Sleep12Cycles            ; wastes some cycles        
+;       jsr Sleep12Cycles            ; wastes some cycles        
         sta PF1                      ; render the actual TP score
 
         sta WSYNC
@@ -484,6 +491,15 @@ GetRandomShoppingCartPos subroutine
     rts 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Subroutine to waste 12 cycles
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; jsr takes 6 cycles
+;; rts takes 6 cycles
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Sleep12Cycles subroutine
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Declare Sprite Lookups
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PlayerRightSprite:
@@ -596,13 +612,35 @@ PlayerUpDownWalkColor:
     .byte #$F2;
     .byte #$0E;
 
-TPSprite:
+TPSpriteOne:
     .byte #%00000000;$0E
     .byte #%00000000;$0E
     .byte #%00000000;$0E
-    .byte #%00011000;$0E
-    .byte #%00011000;$0E
-    .byte #%00011000;$0E
+    .byte #%11000000;$0E
+    .byte #%11000000;$0E
+    .byte #%11000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;--
+
+TPSpriteTwo:
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%11011000;$0E
+    .byte #%11011000;$0E
+    .byte #%11011000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;--
+
+TPSpriteThree:
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%11011011;$0E
+    .byte #%11011011;$0E
+    .byte #%11011011;$0E
     .byte #%00000000;$0E
     .byte #%00000000;$0E
     .byte #%00000000;--
