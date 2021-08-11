@@ -220,15 +220,9 @@ StartFrame:
         tay  
         lda #0
         sta PF0
-;       sta PF1                      ; render the actual TP score
         sta PF2
         lda (TPSpritePtr),Y
-;       sta WSYNC
 
-;       jsr Sleep12Cycles            ; wastes some cycles        
-;       jsr Sleep12Cycles            ; wastes some cycles        
-;       jsr Sleep12Cycles            ; wastes some cycles        
-;       jsr Sleep12Cycles            ; wastes some cycles        
         sta PF1                      ; render the actual TP score
 
         sta WSYNC
@@ -343,7 +337,7 @@ CheckCollisionP0BL:          ; Check collision between player and TP
     bne .CollisionP0BL       ; if collision between P0 and BL happened, branch
     jmp CheckCollisionP0P1   ; else, skip to next check
 .CollisionP0BL:
-    jsr GameOver             ; call GameOver subroutine
+    jsr TPCollide            ; call TP/Player collide subroutine
 
 CheckCollisionP0P1:          ; Check collision between player and shopping cart
     lda #%10000000           ; CXPPMM bit 7 detects P0 and P1 collision
@@ -408,6 +402,28 @@ CheckP0Right:
 EndInputCheck:                       ; fallback when no input was performed
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Set Score Pointer
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    lda Score
+    cmp #1                           ; are we on the second level
+    bcc .checkLevelTwo               ; if result > 1, skip ptr move
+    lda #<TPSpriteOne
+    sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
+    lda #>TPSpriteOne
+    sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
+.checkLevelTwo
+     lda Score   ; TODO check why we are screwing up the E in the Score. Timing or something with accumulator?
+;    cmp #2
+;    bcc .checkLevelThree
+;    lda #<TPSpriteTwo
+;    sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
+;    lda #>TPSpriteTwo
+;    sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
+;.checkLevelThree
+;    cmp #3
+;    jsr GameOver
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     jmp StartFrame           ; continue to display the next frame
@@ -448,6 +464,19 @@ PFCollide subroutine
   	lda PrevPlayerYPos
   	sta PlayerYPos
     rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TP/Player Collide subroutine
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+TPCollide subroutine
+    inc Score                        ; increment the score and move the pointer
+.resetPosition    
+    lda #10                          ; reset player position
+    sta PlayerXPos                   ; start the player on the lefthand side of the screen
+    sta PrevPlayerXPos
+    lda #50
+    sta PlayerYPos                   ; start the player somewhere in the middle of the screen
+    sta PrevPlayerYPos
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Game Over subroutine
