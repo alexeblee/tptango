@@ -203,12 +203,13 @@ StartFrame:
 ;; Display the 96 visible scanlines of our main game because of 2-line kernel
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ldx #96                          ; display 6 lines of scoreboard
+    
+    txa                              ; pre-load some instructions to help with the asym playfield
+    tay
+    lda (PF0Ptr),Y
 
 .DisplayScoreboard
     REPEAT 2
-        txa
-        tay
-        lda (PF0Ptr),Y
         sta PF0
         lda (PF1Ptr),Y
         sta PF1
@@ -220,11 +221,21 @@ StartFrame:
         tay  
         lda #0
         sta PF0
+        
+        nop                          ; kill 10 cycles so we don't stomp over PF2 on the left side of the screen
+        nop
+        nop
+        nop
+        nop
+
         sta PF2
         lda (TPSpritePtr),Y
 
         sta PF1                      ; render the actual TP score
-
+        
+        txa                          ; pre-load same instructions to help with the asym playfield
+        tay
+        lda (PF0Ptr),Y
         sta WSYNC
     REPEND
     dex
