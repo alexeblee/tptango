@@ -12,14 +12,14 @@
     seg.u Variables
     org $80
 
-PlayerXPos		        byte	     ; Player X position
-PlayerYPos		        byte	     ; Player Y position
+PlayerXPos              byte         ; Player X position
+PlayerYPos              byte         ; Player Y position
 PrevPlayerXPos          byte         ; X Pos from previous frame
 PrevPlayerYPos          byte         ; Y Pos from previous frame
-TPXPos			        byte	     
-TPYPos			        byte	    
-ShoppingCartXPos	    byte
-ShoppingCartYPos	    byte
+TPXPos                  byte
+TPYPos                  byte
+ShoppingCartXPos        byte
+ShoppingCartYPos        byte
 
 Random                  byte         ; Random X starting position of shopping cart 1
 
@@ -27,19 +27,19 @@ renderOffset            byte
 
 Score                   byte         ; number of TP objects collected
 
-PlayerLeftSpritePtr	    word	     ; Pointer to PlayerLeftSprite lookup table 
-PlayerLeftColorPtr	    word	     ; Pointer to PlayerLeftColor lookup table 
-PlayerRightSpritePtr	word	     ; Pointer to PlayerRightSprite lookup table 
-PlayerRightColorPtr	    word         ; Pointer to PlayerRightColor lookup table 
-TPSpritePtr		        word	 
-TPColorPtr		        word	
-ShoppingCartSpritePtr	word	 
-ShoppingCartColorPtr	word
+PlayerLeftSpritePtr     word         ; Pointer to PlayerLeftSprite lookup table 
+PlayerLeftColorPtr      word         ; Pointer to PlayerLeftColor lookup table 
+PlayerRightSpritePtr    word         ; Pointer to PlayerRightSprite lookup table 
+PlayerRightColorPtr     word         ; Pointer to PlayerRightColor lookup table 
+TPSpritePtr             word
+TPColorPtr              word
+ShoppingCartSpritePtr   word
+ShoppingCartColorPtr    word
 
-PF0Ptr			        word         ; pointer to the PF0 lookup table
-PF1Ptr			        word         ; pointer to the PF0 lookup table
-PF2Ptr			        word         ; pointer to the PF0 lookup table
-	
+PF0Ptr                  word         ; pointer to the PF0 lookup table
+PF1Ptr                  word         ; pointer to the PF0 lookup table
+PF2Ptr                  word         ; pointer to the PF0 lookup table
+    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Define Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,7 +100,7 @@ Reset:
     lda #<PlayerLeftSprite
     sta PlayerLeftSpritePtr          ; low byte ptr for player left sprite lookup table
     lda #>PlayerLeftSprite
-    sta PlayerLeftSpritePtr+1	     ; high byte ptr for player left sprite lookup table
+    sta PlayerLeftSpritePtr+1        ; high byte ptr for player left sprite lookup table
     
     lda #<PlayerLeftColor
     sta PlayerLeftColorPtr
@@ -110,7 +110,7 @@ Reset:
     lda #<PlayerRightSprite
     sta PlayerRightSpritePtr         ; low byte ptr for player left sprite lookup table
     lda #>PlayerRightSprite
-    sta PlayerRightSpritePtr+1	     ; high byte ptr for player left sprite lookup table
+    sta PlayerRightSpritePtr+1       ; high byte ptr for player left sprite lookup table
     
     lda #<PlayerRightColor
     sta PlayerRightColorPtr
@@ -120,7 +120,7 @@ Reset:
     lda #<ShoppingCartSprite
     sta ShoppingCartSpritePtr        ; low byte ptr for shopping cart sprite lookup table
     lda #>ShoppingCartSprite
-    sta ShoppingCartSpritePtr+1	     ; high byte ptr for shopping cart sprite lookup table
+    sta ShoppingCartSpritePtr+1      ; high byte ptr for shopping cart sprite lookup table
     
     lda #<ShoppingCartColor
     sta ShoppingCartColorPtr
@@ -130,27 +130,27 @@ Reset:
     lda #<TPSpriteThree
     sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
     lda #>TPSpriteThree
-    sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
+    sta TPSpritePtr+1                ; high byte ptr for TP sprite lookup table
     
     lda #<TPColor
     sta TPColorPtr
     lda #>TPColor
     sta TPColorPtr+1
 
-	lda #<BackgroundPF0
-	sta PF0Ptr
-	lda #>BackgroundPF0
-	sta PF0Ptr+1
+    lda #<BackgroundPF0
+    sta PF0Ptr
+    lda #>BackgroundPF0
+    sta PF0Ptr+1
 
-	lda #<BackgroundPF1
-	sta PF1Ptr
-	lda #>BackgroundPF1
-	sta PF1Ptr+1
+    lda #<BackgroundPF1
+    sta PF1Ptr
+    lda #>BackgroundPF1
+    sta PF1Ptr+1
 
-	lda #<BackgroundPF2
-	sta PF2Ptr
-	lda #>BackgroundPF2
-	sta PF2Ptr+1
+    lda #<BackgroundPF2
+    sta PF2Ptr
+    lda #>BackgroundPF2
+    sta PF2Ptr+1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start the main display loop and frame rendering
@@ -208,11 +208,11 @@ StartFrame:
     REPEAT 2
         txa
         tay
-	    lda (PF0Ptr),Y
-	    sta PF0
-	    lda (PF1Ptr),Y
-	    sta PF1
-	    lda (PF2Ptr),Y
+        lda (PF0Ptr),Y
+        sta PF0
+        lda (PF1Ptr),Y
+        sta PF1
+        lda (PF2Ptr),Y
         sta PF2                      ; we've now displayed "SCORE"
         
         txa
@@ -237,19 +237,19 @@ StartFrame:
 .GameLineLoop:
 
 .DrawBackground
-	txa
-	tay
-	lda (PF0Ptr),Y
-	sta PF0
-	lda (PF1Ptr),Y
-	sta PF1
-	lda (PF2Ptr),Y
-	sta PF2
+    txa
+    tay
+    lda (PF0Ptr),Y
+    sta PF0
+    lda (PF1Ptr),Y
+    sta PF1
+    lda (PF2Ptr),Y
+    sta PF2
 
 .CheckInsidePlayer
-    txa 		             ; x has the current line x coordinate. Transfer to A register
+    txa                              ; x has the current line x coordinate. Transfer to A register
     sec                              ; make sure carry flag is set before subtraction
-    sbc PlayerYPos                   ; subtract sprite Y-coordinate 
+    sbc PlayerYPos                   ; subtract sprite Y-coordinate
     cmp #PLAYER_HEIGHT               ; are we inside the sprite height bounds?
     bcc .DrawSpriteP0                ; if result < SpriteHeight, call the draw routine
     lda #0                           ; else, set lookup index to zero
@@ -259,14 +259,14 @@ StartFrame:
     adc renderOffset                 ; jump to correct sprite frame address in memory
     tay                              ; load Y so we can work with the pointer
     lda (PlayerRightColorPtr),Y      ; load player color from lookup table
-    sta COLUP0                       ; set color of player 0    
+    sta COLUP0                       ; set color of player 0
     lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
     sta GRP0                         ; set graphics for player0
     sta WSYNC                        ; wait for scanline
 ;------------------------------------------------------------- line 2    
-	
+    
 .CheckInsideTP
-    txa 		             ; x has the current line y coordinate. Transfer to A register
+    txa                              ; x has the current line y coordinate. Transfer to A register
     sec                              ; make sure carry flag is set before subtraction
     sbc TPYPos                       ; subtract sprite Y-coordinate 
     cmp #TP_HEIGHT                   ; are we inside the TP sprite height bounds?
@@ -281,7 +281,7 @@ StartFrame:
     sta ENABL                        ; unset graphics for TP
 
 .CheckInsideShoppingCart
-    txa 		             ; x has the current line x coordinate. Transfer to A register
+    txa                              ; x has the current line x coordinate. Transfer to A register
     sec                              ; make sure carry flag is set before subtraction
     sbc ShoppingCartYPos             ; subtract sprite Y-coordinate 
     cmp #CART_HEIGHT                 ; are we inside the cart sprite height bounds?
@@ -294,13 +294,13 @@ StartFrame:
     sta COLUP1                       ; set color of cart
     lda (ShoppingCartSpritePtr),Y    ; load cart bitmap data from lookup table
     sta GRP1                         ; set graphics for cart
-    sta WSYNC                       
+    sta WSYNC
  
     dex
     bne .GameLineLoop
 
     lda #0
-    sta renderOffset                 ; reset animation frame to zero each frame	
+    sta renderOffset                 ; reset animation frame to zero each frame 
      
     sta WSYNC                        ; wait for a scanline before drawing vblank
 
@@ -331,32 +331,32 @@ EndShoppingCartPositionUpdate:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Check for object collision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CheckCollisionP0BL:          ; Check collision between player and TP
-    lda #%01000000           ; CXPPMM bit 6 detects P0 and BL collision
-    bit CXP0FB               ; check CXP0FB bit 6 with the above pattern
-    bne .CollisionP0BL       ; if collision between P0 and BL happened, branch
-    jmp CheckCollisionP0P1   ; else, skip to next check
+CheckCollisionP0BL:                  ; Check collision between player and TP
+    lda #%01000000                   ; CXPPMM bit 6 detects P0 and BL collision
+    bit CXP0FB                       ; check CXP0FB bit 6 with the above pattern
+    bne .CollisionP0BL               ; if collision between P0 and BL happened, branch
+    jmp CheckCollisionP0P1           ; else, skip to next check
 .CollisionP0BL:
-    jsr TPCollide            ; call TP/Player collide subroutine
+    jsr TPCollide                    ; call TP/Player collide subroutine
 
-CheckCollisionP0P1:          ; Check collision between player and shopping cart
-    lda #%10000000           ; CXPPMM bit 7 detects P0 and P1 collision
-    bit CXPPMM               ; check CXPPMM bit 7 with the above pattern
-    bne .CollisionP0P1       ; if collision P0 and P1 happened, branch
-    jmp CheckCollisionP0PF   ; else, skip to next check
+CheckCollisionP0P1:                  ; Check collision between player and shopping cart
+    lda #%10000000                   ; CXPPMM bit 7 detects P0 and P1 collision
+    bit CXPPMM                       ; check CXPPMM bit 7 with the above pattern
+    bne .CollisionP0P1               ; if collision P0 and P1 happened, branch
+    jmp CheckCollisionP0PF           ; else, skip to next check
 .CollisionP0P1:
-    jsr GameOver             ; call GameOver subroutine
+    jsr GameOver                     ; call GameOver subroutine
 
 CheckCollisionP0PF:
-    lda #%10000000           ; CXP0FB bit 7 detects P0 and PF collision
-    bit CXP0FB               ; check CXP0FB bit 7 with the above pattern
-    bne .CollisionP0PF       ; if collision P0 and PF happened, branch
-    jmp EndCollisionCheck    ; else, skip to next check
+    lda #%10000000                   ; CXP0FB bit 7 detects P0 and PF collision
+    bit CXP0FB                       ; check CXP0FB bit 7 with the above pattern
+    bne .CollisionP0PF               ; if collision P0 and PF happened, branch
+    jmp EndCollisionCheck            ; else, skip to next check
 .CollisionP0PF:
-    jsr PFCollide            ; call subroutine to reset player position
+    jsr PFCollide                    ; call subroutine to reset player position
 
-EndCollisionCheck:           ; fallback
-    sta CXCLR                ; clear all collision flags before the next frame
+EndCollisionCheck:                   ; fallback
+    sta CXCLR                        ; clear all collision flags before the next frame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Process joystick input for player0
@@ -410,15 +410,15 @@ EndInputCheck:                       ; fallback when no input was performed
     lda #<TPSpriteOne
     sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
     lda #>TPSpriteOne
-    sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
+    sta TPSpritePtr+1                ; high byte ptr for TP sprite lookup table
 .checkLevelTwo
      lda Score   ; TODO check why we are screwing up the E in the Score. Timing or something with accumulator?
 ;    cmp #2
 ;    bcc .checkLevelThree
 ;    lda #<TPSpriteTwo
-;    sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
+;    sta TPSpritePtr                 ; low byte ptr for TP sprite lookup table
 ;    lda #>TPSpriteTwo
-;    sta TPSpritePtr+1	             ; high byte ptr for TP sprite lookup table
+;    sta TPSpritePtr+1               ; high byte ptr for TP sprite lookup table
 ;.checkLevelThree
 ;    cmp #3
 ;    jsr GameOver
@@ -426,7 +426,7 @@ EndInputCheck:                       ; fallback when no input was performed
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    jmp StartFrame           ; continue to display the next frame
+    jmp StartFrame                   ; continue to display the next frame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutine to handle object horizontal position with fine offset
@@ -443,26 +443,26 @@ EndInputCheck:                       ; fallback when no input was performed
 
 ; Positions an object horizontally
 SetObjectXPos subroutine
-    sta WSYNC                 ; start a fresh new scanline
-    sec                       ; make sure carry-flag is set before subtracion
+    sta WSYNC                        ; start a fresh new scanline
+    sec                              ; make sure carry-flag is set before subtracion
 .Div15Loop
-    sbc #15                   ; subtract 15 from accumulator
-    bcs .Div15Loop            ; loop until carry-flag is clear
+    sbc #15                          ; subtract 15 from accumulator
+    bcs .Div15Loop                   ; loop until carry-flag is clear
     
     tay
-    lda fineAdjustTable,Y     ; 13 -> Consume 5 cycles by guaranteeing we cross a page boundary
+    lda fineAdjustTable,Y            ; 13 -> Consume 5 cycles by guaranteeing we cross a page boundary
     sta HMP0,X
-    sta RESP0,X               ; 21/ 26/31/36/41/46/51/56/61/66/71 - Set the rough position.
+    sta RESP0,X                      ; 21/ 26/31/36/41/46/51/56/61/66/71 - Set the rough position.
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Player/Playfield Collide Subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 PFCollide subroutine
-  	lda PrevPlayerXPos
-  	sta PlayerXPos
-  	lda PrevPlayerYPos
-  	sta PlayerYPos
+    lda PrevPlayerXPos
+    sta PlayerXPos
+    lda PrevPlayerYPos
+    sta PlayerYPos
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -504,18 +504,18 @@ GetRandomShoppingCartPos subroutine
     asl 
     eor Random
     asl 
-    rol Random               ; performs a series of shifts and bit operations
+    rol Random                       ; performs a series of shifts and bit operations
 
     lsr 
-    lsr                      ; divide the value by 4 with 2 right shifts
-    sta ShoppingCartXPos     ; save it to the variable ShoppingCartXPos
+    lsr                              ; divide the value by 4 with 2 right shifts
+    sta ShoppingCartXPos             ; save it to the variable ShoppingCartXPos
     lda #20 
-    adc ShoppingCartXPos     ; adds 20 + ShoppingCartXPos to compensate for left side of screen.
-                             ; We don't want to start it on top of the player immediately.
-    sta ShoppingCartXPos     ; and sets the new value to the bomber x-position
+    adc ShoppingCartXPos             ; adds 20 + ShoppingCartXPos to compensate for left side of screen.
+                                     ; We don't want to start it on top of the player immediately.
+    sta ShoppingCartXPos             ; and sets the new value to the bomber x-position
 
     lda #76 
-    sta ShoppingCartYPos     ; set the y-position to the top of the screen
+    sta ShoppingCartYPos             ; set the y-position to the top of the screen
 
     rts 
 
@@ -1012,27 +1012,27 @@ BackgroundPF2:
     org $FE00               ; move to position $FE00
 
 fineAdjustBegin
-    DC.B %01110000          ; Left 7 
-    DC.B %01100000          ; Left 6
-    DC.B %01010000          ; Left 5
-    DC.B %01000000          ; Left 4
-    DC.B %00110000          ; Left 3
-    DC.B %00100000          ; Left 2
-    DC.B %00010000          ; Left 1
-    DC.B %00000000          ; No movement.
-    DC.B %11110000          ; Right 1
-    DC.B %11100000          ; Right 2
-    DC.B %11010000          ; Right 3
-    DC.B %11000000          ; Right 4
-    DC.B %10110000          ; Right 5
-    DC.B %10100000          ; Right 6
-    DC.B %10010000          ; Right 7
+    DC.B %01110000                   ; Left 7 
+    DC.B %01100000                   ; Left 6
+    DC.B %01010000                   ; Left 5
+    DC.B %01000000                   ; Left 4
+    DC.B %00110000                   ; Left 3
+    DC.B %00100000                   ; Left 2
+    DC.B %00010000                   ; Left 1
+    DC.B %00000000                   ; No movement.
+    DC.B %11110000                   ; Right 1
+    DC.B %11100000                   ; Right 2
+    DC.B %11010000                   ; Right 3
+    DC.B %11000000                   ; Right 4
+    DC.B %10110000                   ; Right 5
+    DC.B %10100000                   ; Right 6
+    DC.B %10010000                   ; Right 7
 
 fineAdjustTable EQU fineAdjustBegin - %11110001; NOTE: %11110001 = -15
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Complete ROM size with exactly 4KB
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    org $FFFC                ; move to position $FFFC
-    word Reset               ; write 2 bytes with the program reset address
-    word Reset               ; write 2 bytes with the interruption vector
+    org $FFFC                        ; move to position $FFFC
+    word Reset                       ; write 2 bytes with the program reset address
+    word Reset                       ; write 2 bytes with the interruption vector
