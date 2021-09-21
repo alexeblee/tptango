@@ -127,9 +127,9 @@ Reset:
     lda #>ShoppingCartColor
     sta ShoppingCartColorPtr+1
     
-    lda #<TPSpriteThree
+    lda #<TPSpriteZero
     sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
-    lda #>TPSpriteThree
+    lda #>TPSpriteZero
     sta TPSpritePtr+1                ; high byte ptr for TP sprite lookup table
     
     lda #<TPColor
@@ -416,23 +416,34 @@ EndInputCheck:                       ; fallback when no input was performed
 ;; Set Score Pointer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     lda Score
-    cmp #1                           ; are we on the second level
-    bcc .checkLevelTwo               ; if result > 1, skip ptr move
+    cmp #0
+    beq .finishScore
+    cmp #1
+    beq .checkLevelOne
+    cmp #2
+    beq .checkLevelTwo
+    cmp #3
+    beq .checkLevelThree
+    jmp .finishScore
+.checkLevelOne
     lda #<TPSpriteOne
     sta TPSpritePtr                  ; low byte ptr for TP sprite lookup table
     lda #>TPSpriteOne
     sta TPSpritePtr+1                ; high byte ptr for TP sprite lookup table
+    jmp .finishScore
 .checkLevelTwo
-     lda Score   ; TODO check why we are screwing up the E in the Score. Timing or something with accumulator?
-;    cmp #2
-;    bcc .checkLevelThree
-;    lda #<TPSpriteTwo
-;    sta TPSpritePtr                 ; low byte ptr for TP sprite lookup table
-;    lda #>TPSpriteTwo
-;    sta TPSpritePtr+1               ; high byte ptr for TP sprite lookup table
-;.checkLevelThree
-;    cmp #3
-;    jsr GameOver
+     lda #<TPSpriteTwo
+     sta TPSpritePtr                 ; low byte ptr for TP sprite lookup table
+     lda #>TPSpriteTwo
+     sta TPSpritePtr+1               ; high byte ptr for TP sprite lookup table
+     jmp .finishScore
+.checkLevelThree
+     lda #<TPSpriteThree
+     sta TPSpritePtr                 ; low byte ptr for TP sprite lookup table
+     lda #>TPSpriteThree
+     sta TPSpritePtr+1               ; high byte ptr for TP sprite lookup table
+     jsr GameOver                     ; call GameOver subroutine
+.finishScore
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loop back to start a brand new frame
@@ -488,12 +499,13 @@ TPCollide subroutine
     lda #50
     sta PlayerYPos                   ; start the player somewhere in the middle of the screen
     sta PrevPlayerYPos
+    rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Game Over subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 GameOver subroutine
-    lda #$30
+    lda #$0
     sta COLUBK
     rts
 
@@ -651,6 +663,17 @@ PlayerUpDownWalkColor:
     .byte #$FE;
     .byte #$F2;
     .byte #$0E;
+
+TPSpriteZero:
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;$0E
+    .byte #%00000000;--
 
 TPSpriteOne:
     .byte #%00000000;$0E
