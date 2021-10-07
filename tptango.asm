@@ -273,8 +273,6 @@ StartFrame:
     sta COLUP0                       ; set color of player 0
     lda (PlayerRightSpritePtr),Y     ; load player0 bitmap data from lookup table
     sta GRP0                         ; set graphics for player0
-    sta WSYNC                        ; wait for scanline
-;------------------------------------------------------------- line 2    
     
 .CheckInsideTP
     txa                              ; x has the current line y coordinate. Transfer to A register
